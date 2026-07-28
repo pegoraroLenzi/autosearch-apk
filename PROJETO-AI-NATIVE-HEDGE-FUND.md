@@ -114,7 +114,7 @@ Cada agente é um LLM com prompt, ferramentas e memória próprios. Rodam no cic
 | **Técnico/Quant** | Séries de preço/volume, indicadores, fatores | Sinais técnicos e de fatores (momentum, valor, qualidade) |
 | **Pessoas (LinkedIn+Glassdoor)** | Fluxo de contratações/saídas, vagas por área, reviews | Sinais antecedentes: êxodo de engenheiros, contratação agressiva em nova linha de negócio, queda de moral pré-resultado |
 | **Macro** | As duas camadas econômicas do §4.3: painéis setoriais (peso maior) e economia mundial (peso menor) — juros, câmbio, commodities, calendário econômico | Regime de mercado (risk-on/risk-off) que condiciona o apetite do comitê + leitura do vento setorial (a favor/contra) para cada setor coberto |
-| **Concorrência** | Mesmos dados, organizados por setor | Mapa competitivo: quem ganha/perde share, movimentos que afetam pares |
+| **Concorrência** | **Cobertura espelhada dos concorrentes relevantes (§4.4)** — mesmos dados e análises replicados para cada peer | **Desempenho relativo** da empresa no mercado em que atua: quartil em cada KPI setorial vs. peers, evolução de share, quem ganha/perde — só emite sinal se o peer set estiver coberto |
 | **Planejamento Estratégico** | Planos estratégicos divulgados, guidance de longo prazo, M&A, alocação de capital (capex, recompras, dividendos), investor days | Avaliação da **qualidade da estratégia e da execução** de cada empresa: coerência plano×entrega (guidance cumprido?), disciplina de alocação de capital, vantagem competitiva sustentável (VRIO), e **análise de cenários** por ativo (o que quebra ou confirma a tese em cada cenário macro/setorial) |
 
 Cada saída é um **sinal versionado e auditável**: `{agente, ticker, score, confiança, evidências[], timestamp}`.
@@ -185,6 +185,30 @@ Terceiro componente obrigatório da base de dados — o contexto econômico em q
 **Enforcement (mesmo padrão dos §4.1–4.2):**
 - O Dossiê Setorial só chega ao estado `aprovado` se o seu painel de indicadores setoriais estiver definido **e carregado com 10 anos de histórico**.
 - A base global é pré-requisito único do sistema (não por ativo): carregada no bootstrap, atualizada no ciclo diário/mensal conforme a frequência de cada série, com check de frescor — série global vencida degrada o Agente Macro para "regime indefinido" (postura conservadora), não bloqueia o universo inteiro.
+
+### 4.4 Cobertura espelhada de concorrentes: análise relativa obrigatória
+
+**Toda análise feita para uma empresa do universo é replicada para os seus concorrentes de relevância** — o objetivo não é saber se a empresa é boa em absoluto, mas **qual o desempenho dela no mercado em que atua**. Sem os peers analisados da mesma forma, não há como responder.
+
+- **Definição do peer set no onboarding:** os concorrentes relevantes de cada empresa são identificados no Dossiê Setorial (que já mapeia os players) por participação de mercado e sobreposição de produto/geografia, e registrados em `assets` (campo já existente de pares/concorrentes, agora com papel formal).
+- **Replicação integral, no que for aplicável:** os mesmos coletores (notícias nacionais/regionais, canais oficiais, portais de governo, dados de pessoas), os mesmos painéis, a mesma datação temporal e os mesmos agentes rodam para cada peer.
+- **Dois tipos de peer:**
+  - `investível` — listado e dentro do escopo de execução: cobertura integral, mesmos pré-requisitos (§4.1–4.3); pode inclusive virar posição (comprar o vencedor do setor em vez da empresa originalmente analisada — ou um par long/short);
+  - `referência` — empresa fechada, estatal não listada ou listada fora do escopo: cobertura adaptada ao que existe publicamente (demonstrações quando houver, notícias, vagas/reviews), **com as lacunas documentadas** para o comitê saber o que não está sendo visto.
+- **Saída formal — desempenho relativo:** para cada KPI setorial do dossiê, a posição da empresa vs. peers (quartil, tendência de 10 anos), evolução de market share e comparação dos sinais de pessoas e de execução (promessa×entrega). **Toda tese registra a posição relativa** — deixa explícito se o fundo está comprando o melhor operador do setor, o mais barato, ou o azarão de virada.
+- **Enforcement:** o Agente de Concorrência não emite sinal para empresa cujo peer set não esteja coberto; peer set vazio ou desatualizado (não revisado na última revalidação do dossiê) bloqueia o sinal de concorrência e rebaixa a confiança agregada da tese.
+
+### 4.5 Motor 2: entrada em mercado novo é avaliada separadamente
+
+Quando uma empresa do universo **entra em um mercado novo** — diversificação, nova vertical, nova geografia relevante, aquisição fora do setor de origem — esse negócio é tratado como o **Motor 2** da companhia e avaliado **separadamente** do negócio principal (Motor 1). Misturar o negócio maduro com a aposta nova contamina os dois: o Motor 2 pequeno some nos números consolidados, e o risco dele não aparece na média.
+
+Regras da avaliação segregada:
+
+1. **Dossiê setorial próprio:** o mercado do Motor 2 exige Dossiê Setorial aprovado do setor **novo** (o §4.1 aplica-se integralmente — o sistema não avalia a nova frente sem base teórica daquele mercado).
+2. **Peer set próprio:** os concorrentes do Motor 2 são os players do mercado novo (não os do negócio principal), com a cobertura espelhada do §4.4.
+3. **KPIs e acompanhamento próprios:** métricas do setor novo, metas declaradas pela administração para a nova frente, e linha promessa×entrega **por motor** (a empresa pode estar executando bem o core e mal a expansão — ou o contrário).
+4. **Tese em soma das partes:** a avaliação final compõe Motor 1 + Motor 2 + custo/risco da transição — usando Ansoff e Hamel & Prahalad (distância da competência central precifica o risco de execução) e Christensen (o Motor 2 é ataque disruptivo ou defesa?) — com cenários separados por motor.
+5. **Gatilho automático:** fato relevante ou ITR indicando novo segmento de receita, nova geografia relevante ou aquisição fora do setor dispara a criação do Motor 2 no sistema (estado `motor2_pendente` até o dossiê do novo setor ser aprovado — enquanto isso, a tese registra a nova frente como risco não avaliado, com desconto de confiança).
 
 ---
 
@@ -261,7 +285,8 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 
 ## 8. Modelo de dados (núcleo)
 
-- `assets` — tickers, setor, pares/concorrentes, metadados, vínculo ao dossiê setorial, **sede (município/UF) e localidades de operações relevantes** (mapa que dirige o monitoramento de portais oficiais estaduais/municipais) e **mapa de receita por geografia/mercados atendidos** (§4.3 camada 1b, revisado a cada ITR), além dos canais oficiais da companhia (site, RI) monitorados com diff.
+- `assets` — tickers, setor, pares/concorrentes (peer set formal do §4.4, com tipo `investível`/`referência`), metadados, vínculo ao dossiê setorial, **sede (município/UF) e localidades de operações relevantes** (mapa que dirige o monitoramento de portais oficiais estaduais/municipais) e **mapa de receita por geografia/mercados atendidos** (§4.3 camada 1b, revisado a cada ITR), além dos canais oficiais da companhia (site, RI) monitorados com diff.
+- `business_engines` — motores da companhia (§4.5): Motor 1 (core) e Motor 2+ (novas frentes), cada um com setor/dossiê, peer set, KPIs, metas declaradas e linha promessa×entrega próprios.
 - `sector_dossiers` — dossiês setoriais versionados (conteúdo, bibliografia, estado de aprovação, validade) — pré-requisito de análise (§4.1).
 - `fundamentals_quarterly` — demonstrações trimestrais normalizadas por ativo (≥ 40 trimestres, §4.2), com check de completude.
 - `material_facts` — arquivo integral de fatos relevantes por ativo (≥ 10 anos, com timestamp original), vinculado aos `signal_documents`.

@@ -40,6 +40,7 @@ flowchart LR
 
 ### Sprint 3 — Primeiros agentes
 - **Dossiês Setoriais do universo inicial** (`PROJETO...md` §4.1): pipeline de curadoria (agente pesquisador + fontes do padrão da `FUNDAMENTACAO-TEORICA.md` §5.2), revisão e aprovação humana, versionamento no banco. Nenhum ticker é ativado para análise sem dossiê `aprovado` — isso dimensiona o universo inicial (menos setores, mais profundidade).
+- **Peer sets do universo inicial** (`PROJETO...md` §4.4): concorrentes relevantes de cada empresa identificados no dossiê e onboardados com cobertura espelhada (integral para `investível`, adaptada e com lacunas documentadas para `referência`) — o custo real do universo é empresas × (1 + peers), o que reforça o dimensionamento conservador.
 - Índice vetorial (pgvector) + memória por ativo.
 - Agente Fundamentalista e Agente de Sentimento com **saída estruturada validada por schema** (score, confiança, evidências com IDs de documentos reais).
 - Tabela `agent_runs` com custo, latência e prompt versionado.
@@ -175,6 +176,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] 100% dos ativos do universo com Dossiê Setorial `aprovado`, dentro da validade e com aprovação humana registrada.
 - [ ] 100% dos ativos do universo com `histórico_completo`: ≥ 10 anos de trimestres sem lacuna, arquivo integral de fatos relevantes e janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente).
 - [ ] Base econômica das duas camadas (§4.3) carregada: painéis setoriais de todos os dossiês aprovados com 10 anos + série global completa com **30 anos**, com check de frescor ativo (série global vencida → Agente Macro degrada para "regime indefinido").
+- [ ] 100% das empresas do universo com peer set coberto (§4.4) e, onde houver nova frente de negócio, Motor 2 criado com dossiê do setor novo aprovado ou tese com desconto de confiança registrado (§4.5).
 
 **Operacional**
 - [ ] Runbooks: corretora fora, dado corrompido, drawdown > limite, rollback de versão.
