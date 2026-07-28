@@ -32,7 +32,7 @@ flowchart LR
 - Modelo de dados no PostgreSQL + migrações versionadas (Alembic).
 - Coletores: market data EOD (fonte gratuita) + fatos relevantes CVM/EDGAR + 2–3 feeds RSS de notícias.
 - **Backfill histórico de 10 anos** (`PROJETO...md` §4.2) para o universo inicial: todos os trimestres (ITR/DFP da CVM ou 10-Q/10-K do EDGAR), histórico completo de fatos relevantes com timestamp original e preços ajustados — com check automático de completude (≥ 40 trimestres sem lacuna) que marca cada ativo como `histórico_completo`.
-- **Backfill econômico de 10 anos** (`PROJETO...md` §4.3): camada global (FMI, Banco Mundial, OCDE, BIS, FRED) carregada no bootstrap; painéis setoriais específicos carregados junto com cada Dossiê Setorial (BCB/SGS, IBGE, ONS, CONAB, ANP...), com pesos setorial > doméstico > global registrados por série.
+- **Backfill econômico** (`PROJETO...md` §4.3): camada global com **30 anos** (FMI, Banco Mundial, OCDE, BIS, FRED) carregada no bootstrap; painéis setoriais específicos com **10 anos** carregados junto com cada Dossiê Setorial (BCB/SGS, IBGE, ONS, CONAB, ANP...), com pesos setorial > doméstico > global registrados por série.
 - Pipeline de normalização → `SignalDocument`, entity linking com dicionário inicial de ~30 tickers, dedup.
 - **Entregável verificável**: rodada diária automática populando o banco; relatório de qualidade de dados por e-mail, incluindo o painel de completude histórica por ativo.
 
@@ -172,7 +172,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] Limites de risco e alçadas revisados e assinados pelo gestor humano.
 - [ ] 100% dos ativos do universo com Dossiê Setorial `aprovado`, dentro da validade e com aprovação humana registrada.
 - [ ] 100% dos ativos do universo com `histórico_completo`: ≥ 10 anos de trimestres sem lacuna, arquivo integral de fatos relevantes e janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente).
-- [ ] Base econômica das duas camadas (§4.3) carregada com 10 anos: painéis setoriais de todos os dossiês aprovados + série global completa, com check de frescor ativo (série global vencida → Agente Macro degrada para "regime indefinido").
+- [ ] Base econômica das duas camadas (§4.3) carregada: painéis setoriais de todos os dossiês aprovados com 10 anos + série global completa com **30 anos**, com check de frescor ativo (série global vencida → Agente Macro degrada para "regime indefinido").
 
 **Operacional**
 - [ ] Runbooks: corretora fora, dado corrompido, drawdown > limite, rollback de versão.

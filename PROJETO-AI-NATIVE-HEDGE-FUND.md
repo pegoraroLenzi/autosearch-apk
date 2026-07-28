@@ -86,7 +86,7 @@ flowchart TB
 | LinkedIn | Vagas abertas, contratações de executivos, saídas em massa | **Somente via provedores licenciados** (ex.: Coresignal, Bright Data datasets, Revelio Labs) — scraping direto viola os termos de uso |
 | Glassdoor | Nota da empresa, tendência de reviews, sentimento sobre liderança | Provedores de dados agregados (mesma restrição acima) |
 | Dados alternativos | X/Twitter, Reddit, Google Trends, downloads de apps | APIs oficiais e provedores especializados |
-| Dados econômicos (2 camadas, §4.3) | Setoriais específicos por área de atuação (peso maior) + economia mundial como um todo (peso menor) — 10 anos | BCB/SGS, IBGE, ONS/ANEEL, CONAB, ANP; FMI, Banco Mundial, OCDE, BIS, FRED |
+| Dados econômicos (2 camadas, §4.3) | Setoriais específicos por área de atuação (peso maior, 10 anos) + economia mundial como um todo (peso menor, **30 anos**) | BCB/SGS, IBGE, ONS/ANEEL, CONAB, ANP; FMI, Banco Mundial, OCDE, BIS, FRED |
 
 ### 3.2 Pipeline de ingestão
 
@@ -138,7 +138,7 @@ Efeito prático: expandir o universo de ativos tem custo deliberado — cobrir u
 
 ### 4.2 Pré-requisito de profundidade histórica: mínimo de 10 anos (bloqueante)
 
-> **Convenção do projeto:** salvo indicação explícita em contrário, "base histórica" significa sempre **10 anos**, em qualquer documento deste projeto.
+> **Convenção do projeto:** salvo indicação explícita em contrário, "base histórica" significa sempre **10 anos**, em qualquer documento deste projeto — **exceto para dados globais** (economia mundial e séries internacionais da camada 2 do §4.3), cuja base histórica é sempre de **30 anos**.
 
 Segundo pré-requisito de entrada no universo analisável: **base histórica mínima de 10 anos por empresa**, com três componentes obrigatórios e completos:
 
@@ -156,9 +156,9 @@ Segundo pré-requisito de entrada no universo analisável: **base histórica mí
 - **IPOs e empresas com menos de 10 anos de listagem ficam fora do universo por padrão.** Exceção somente por aprovação humana explícita e documentada, com limite de posição reduzido — e o motivo registrado na tese.
 - A janela é **móvel**: a cada trimestre, o pipeline incorpora o novo ITR e os novos fatos relevantes; falha de atualização por 2 trimestres consecutivos rebaixa o ativo para fora do universo até regularizar.
 
-### 4.3 Base de dados econômicos: duas camadas com pesos distintos (10 anos)
+### 4.3 Base de dados econômicos: duas camadas com pesos distintos (setorial: 10 anos · global: 30 anos)
 
-Terceiro componente obrigatório da base de dados — o contexto econômico em que cada empresa opera, com **base histórica de 10 anos** (convenção do §4.2) e hierarquia de peso explícita:
+Terceiro componente obrigatório da base de dados — o contexto econômico em que cada empresa opera, com hierarquia de peso explícita e profundidades distintas por camada (convenção do §4.2: 10 anos como padrão, 30 anos para dados globais):
 
 **Camada 1 — Dados econômicos setoriais (peso maior).** Indicadores **detalhados e específicos da área de atuação de cada empresa**, definidos no Dossiê Setorial do setor (que passa a incluir um *painel de indicadores obrigatório*). Exemplos do padrão:
 
@@ -171,7 +171,7 @@ Terceiro componente obrigatório da base de dados — o contexto econômico em q
 | Energia elétrica | Carga do sistema, nível de reservatórios, tarifas, PLD | ONS, ANEEL, EPE, CCEE |
 | Óleo & gás | Brent/WTI, produção e demanda global, capacidade de refino | ANP, IEA, EIA |
 
-**Camada 2 — Dados globais da economia mundial (peso menor, nunca zero).** O pano de fundo comum a todos os ativos: PIB global e por bloco, juros dos principais bancos centrais (Fed, BCE, BoJ), inflação global, comércio internacional, índice dólar (DXY), commodities agregadas, indicadores de estresse financeiro (VIX, spreads de crédito). Fontes: FMI (WEO), Banco Mundial, OCDE, BIS, FRED.
+**Camada 2 — Dados globais da economia mundial (peso menor, nunca zero; base histórica de 30 anos).** O pano de fundo comum a todos os ativos: PIB global e por bloco, juros dos principais bancos centrais (Fed, BCE, BoJ), inflação global, comércio internacional, índice dólar (DXY), commodities agregadas, indicadores de estresse financeiro (VIX, spreads de crédito). Fontes: FMI (WEO), Banco Mundial, OCDE, BIS, FRED — todas com séries longas disponíveis. **Por que 30 anos na camada global:** ciclos globais são mais longos e raros que os domésticos; 30 anos capturam múltiplos regimes completos (crise asiática 1997, bolha ponto-com 2000, crise financeira 2008, pandemia 2020, choque inflacionário 2021–23), dando ao Agente Macro repertório de comparação que 10 anos não dão.
 
 **Regra de ponderação (explícita nos prompts e na agregação de sinais):** para a análise de uma empresa, vale a hierarquia **setorial > doméstico > global** — o dado específico do setor domina; o dado global entra como condicionante de regime (via Agente Macro), com peso reduzido, mas nunca é descartado: choques globais atravessam qualquer setor (2008, 2020). A calibração fina dos pesos por setor é definida no dossiê e revisada pela atribuição de performance.
 
@@ -258,7 +258,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 - `sector_dossiers` — dossiês setoriais versionados (conteúdo, bibliografia, estado de aprovação, validade) — pré-requisito de análise (§4.1).
 - `fundamentals_quarterly` — demonstrações trimestrais normalizadas por ativo (≥ 40 trimestres, §4.2), com check de completude.
 - `material_facts` — arquivo integral de fatos relevantes por ativo (≥ 10 anos, com timestamp original), vinculado aos `signal_documents`.
-- `econ_series` — séries econômicas das duas camadas do §4.3 (setoriais e globais), com 10 anos de histórico, fonte, frequência, peso e check de frescor.
+- `econ_series` — séries econômicas das duas camadas do §4.3 (setoriais: 10 anos; globais: 30 anos), com fonte, frequência, peso e check de frescor.
 - `signal_documents` — todo conteúdo ingerido, normalizado, com vínculo a ativos.
 - `signals` — saídas dos agentes (score, confiança, evidências → documentos).
 - `theses` — teses de investimento versionadas (aberta, atualizada, invalidada, encerrada).
