@@ -115,6 +115,7 @@ O cânone acadêmico da disciplina, na ordem histórica — cada obra vira um "i
 | Regulador oficial do setor | BCB e relatórios de estabilidade financeira (bancos); ANEEL/ONS/EPE (energia); ANP (óleo & gás); Anatel (telecom); ANS (saúde suplementar); CVM (mercado de capitais) | **Preferencial** — dados primários, metodologia pública |
 | Organismos internacionais | BIS/Basileia (bancos), IEA (energia), USGS (mineração), FAO/USDA (agro), OMS (saúde) | **Preferencial** |
 | Estatísticas oficiais | IBGE, séries do BCB (SGS), FRED, Eurostat | **Preferencial** |
+| Dados da economia mundial (camada global do §4.3 do projeto) | FMI (World Economic Outlook), Banco Mundial, OCDE, BIS | **Preferencial** — peso menor que o setorial, nunca zero |
 | Literatura acadêmica do setor | Journals de economia/finança aplicada; handbooks setoriais (ex.: *Handbook of Banking*, Oxford) | **Preferencial** |
 | Associações setoriais com metodologia pública | ABRAINC/CBIC (construção), ANFAVEA (autos), ABIQUIM (química), FEBRABAN (bancos) | Aceitável — checar conflito de interesse (associação defende o setor) |
 | Research de bancos/consultorias | Relatórios setoriais de research | Aceitável como fonte secundária — nunca única |

@@ -86,6 +86,7 @@ flowchart TB
 | LinkedIn | Vagas abertas, contratações de executivos, saídas em massa | **Somente via provedores licenciados** (ex.: Coresignal, Bright Data datasets, Revelio Labs) — scraping direto viola os termos de uso |
 | Glassdoor | Nota da empresa, tendência de reviews, sentimento sobre liderança | Provedores de dados agregados (mesma restrição acima) |
 | Dados alternativos | X/Twitter, Reddit, Google Trends, downloads de apps | APIs oficiais e provedores especializados |
+| Dados econômicos (2 camadas, §4.3) | Setoriais específicos por área de atuação (peso maior) + economia mundial como um todo (peso menor) — 10 anos | BCB/SGS, IBGE, ONS/ANEEL, CONAB, ANP; FMI, Banco Mundial, OCDE, BIS, FRED |
 
 ### 3.2 Pipeline de ingestão
 
@@ -107,7 +108,7 @@ Cada agente é um LLM com prompt, ferramentas e memória próprios. Rodam no cic
 | **Sentimento** | Notícias, redes sociais, análises de terceiros | Índice de sentimento por ativo e por setor, com detecção de mudança de tendência |
 | **Técnico/Quant** | Séries de preço/volume, indicadores, fatores | Sinais técnicos e de fatores (momentum, valor, qualidade) |
 | **Pessoas (LinkedIn+Glassdoor)** | Fluxo de contratações/saídas, vagas por área, reviews | Sinais antecedentes: êxodo de engenheiros, contratação agressiva em nova linha de negócio, queda de moral pré-resultado |
-| **Macro** | Juros, câmbio, commodities, calendário econômico | Regime de mercado (risk-on/risk-off) que condiciona o apetite do comitê |
+| **Macro** | As duas camadas econômicas do §4.3: painéis setoriais (peso maior) e economia mundial (peso menor) — juros, câmbio, commodities, calendário econômico | Regime de mercado (risk-on/risk-off) que condiciona o apetite do comitê + leitura do vento setorial (a favor/contra) para cada setor coberto |
 | **Concorrência** | Mesmos dados, organizados por setor | Mapa competitivo: quem ganha/perde share, movimentos que afetam pares |
 | **Planejamento Estratégico** | Planos estratégicos divulgados, guidance de longo prazo, M&A, alocação de capital (capex, recompras, dividendos), investor days | Avaliação da **qualidade da estratégia e da execução** de cada empresa: coerência plano×entrega (guidance cumprido?), disciplina de alocação de capital, vantagem competitiva sustentável (VRIO), e **análise de cenários** por ativo (o que quebra ou confirma a tese em cada cenário macro/setorial) |
 
@@ -125,6 +126,7 @@ Cada saída é um **sinal versionado e auditável**: `{agente, ticker, score, co
 4. **Regulação** — órgão regulador, regras que movem o setor, agenda regulatória em curso.
 5. **Riscos estruturais** — disrupção tecnológica, transição energética, dependências de commodity/câmbio.
 6. **Bibliografia setorial confiável** — fontes que passam no critério de confiabilidade da `FUNDAMENTACAO-TEORICA.md` §1 (academia, reguladores, dados oficiais), com as fontes duvidosas explicitamente excluídas.
+7. **Painel de indicadores econômicos setoriais** — as séries econômicas específicas do setor, com 10 anos de histórico carregado e pesos definidos (ver §4.3).
 
 **Ciclo de vida:** o dossiê é redigido por um processo dedicado de curadoria (agente pesquisador + fontes verificadas), **revisado e aprovado por humano**, versionado no banco, e revalidado periodicamente (anual, ou imediatamente após mudança regulatória/estrutural relevante). Estados: `rascunho → em_revisão → aprovado → vencido`.
 
@@ -153,6 +155,29 @@ Segundo pré-requisito de entrada no universo analisável: **base histórica mí
 - Agentes não emitem sinal e o motor de risco não aprova ordem para ativo sem `histórico_completo` (invariante testada).
 - **IPOs e empresas com menos de 10 anos de listagem ficam fora do universo por padrão.** Exceção somente por aprovação humana explícita e documentada, com limite de posição reduzido — e o motivo registrado na tese.
 - A janela é **móvel**: a cada trimestre, o pipeline incorpora o novo ITR e os novos fatos relevantes; falha de atualização por 2 trimestres consecutivos rebaixa o ativo para fora do universo até regularizar.
+
+### 4.3 Base de dados econômicos: duas camadas com pesos distintos (10 anos)
+
+Terceiro componente obrigatório da base de dados — o contexto econômico em que cada empresa opera, com **base histórica de 10 anos** (convenção do §4.2) e hierarquia de peso explícita:
+
+**Camada 1 — Dados econômicos setoriais (peso maior).** Indicadores **detalhados e específicos da área de atuação de cada empresa**, definidos no Dossiê Setorial do setor (que passa a incluir um *painel de indicadores obrigatório*). Exemplos do padrão:
+
+| Setor | Painel setorial (exemplos) | Fontes |
+|---|---|---|
+| Bancos | Saldo e concessões de crédito, inadimplência por segmento, spread bancário, Selic | BCB (SGS, IF.data) |
+| Varejo | PMC (volume de vendas), confiança do consumidor, massa salarial, endividamento das famílias | IBGE, FGV, BCB |
+| Mineração/Siderurgia | Preço do minério e do aço, produção industrial da China, frete marítimo | Bolsas de commodities, NBS/China, USGS |
+| Agronegócio | Preços de grãos/proteína, safras e estoques, câmbio, clima | CONAB, USDA, CEPEA |
+| Energia elétrica | Carga do sistema, nível de reservatórios, tarifas, PLD | ONS, ANEEL, EPE, CCEE |
+| Óleo & gás | Brent/WTI, produção e demanda global, capacidade de refino | ANP, IEA, EIA |
+
+**Camada 2 — Dados globais da economia mundial (peso menor, nunca zero).** O pano de fundo comum a todos os ativos: PIB global e por bloco, juros dos principais bancos centrais (Fed, BCE, BoJ), inflação global, comércio internacional, índice dólar (DXY), commodities agregadas, indicadores de estresse financeiro (VIX, spreads de crédito). Fontes: FMI (WEO), Banco Mundial, OCDE, BIS, FRED.
+
+**Regra de ponderação (explícita nos prompts e na agregação de sinais):** para a análise de uma empresa, vale a hierarquia **setorial > doméstico > global** — o dado específico do setor domina; o dado global entra como condicionante de regime (via Agente Macro), com peso reduzido, mas nunca é descartado: choques globais atravessam qualquer setor (2008, 2020). A calibração fina dos pesos por setor é definida no dossiê e revisada pela atribuição de performance.
+
+**Enforcement (mesmo padrão dos §4.1–4.2):**
+- O Dossiê Setorial só chega ao estado `aprovado` se o seu painel de indicadores setoriais estiver definido **e carregado com 10 anos de histórico**.
+- A base global é pré-requisito único do sistema (não por ativo): carregada no bootstrap, atualizada no ciclo diário/mensal conforme a frequência de cada série, com check de frescor — série global vencida degrada o Agente Macro para "regime indefinido" (postura conservadora), não bloqueia o universo inteiro.
 
 ---
 
@@ -233,6 +258,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 - `sector_dossiers` — dossiês setoriais versionados (conteúdo, bibliografia, estado de aprovação, validade) — pré-requisito de análise (§4.1).
 - `fundamentals_quarterly` — demonstrações trimestrais normalizadas por ativo (≥ 40 trimestres, §4.2), com check de completude.
 - `material_facts` — arquivo integral de fatos relevantes por ativo (≥ 10 anos, com timestamp original), vinculado aos `signal_documents`.
+- `econ_series` — séries econômicas das duas camadas do §4.3 (setoriais e globais), com 10 anos de histórico, fonte, frequência, peso e check de frescor.
 - `signal_documents` — todo conteúdo ingerido, normalizado, com vínculo a ativos.
 - `signals` — saídas dos agentes (score, confiança, evidências → documentos).
 - `theses` — teses de investimento versionadas (aberta, atualizada, invalidada, encerrada).
