@@ -86,6 +86,7 @@ Para *qualquer* sequência de propostas e *qualquer* estado de portfólio:
 - Nenhuma posição resultante excede o limite por ativo/setor.
 - Com circuit breaker ativo, nenhuma ordem aumenta exposição.
 - Toda ordem aprovada tem stop definido.
+- Toda ordem pertence a um livro/horizonte (§5.1 do projeto) e respeita o orçamento de risco daquele livro; posição sem livro é rejeitada.
 - Nenhuma ordem é aprovada para ativo cujo setor não tem Dossiê Setorial em estado `aprovado` e dentro da validade.
 - Nenhuma ordem é aprovada para ativo sem estado `histórico_completo` (≥ 10 anos / 40 trimestres + fatos relevantes íntegros, janela móvel em dia).
 - Ordem com tamanho > X% do volume médio diário nunca é aprovada.

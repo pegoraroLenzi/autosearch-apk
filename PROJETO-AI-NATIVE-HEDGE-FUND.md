@@ -119,7 +119,7 @@ Cada agente é um LLM com prompt, ferramentas e memória próprios. Rodam no cic
 | **Concorrência** | **Cobertura espelhada dos concorrentes relevantes (§4.4)** — mesmos dados e análises replicados para cada peer | **Desempenho relativo** da empresa no mercado em que atua: quartil em cada KPI setorial vs. peers, evolução de share, quem ganha/perde — só emite sinal se o peer set estiver coberto |
 | **Planejamento Estratégico** | Planos estratégicos divulgados, guidance de longo prazo, M&A, alocação de capital (capex, recompras, dividendos), investor days | Avaliação da **qualidade da estratégia e da execução** de cada empresa: coerência plano×entrega (guidance cumprido?), disciplina de alocação de capital, vantagem competitiva sustentável (VRIO), e **análise de cenários** por ativo (o que quebra ou confirma a tese em cada cenário macro/setorial) |
 
-Cada saída é um **sinal versionado e auditável**: `{agente, ticker, score, confiança, evidências[], timestamp}`.
+Cada saída é um **sinal versionado e auditável**: `{agente, ticker, score, confiança, evidências[], **horizonte**, timestamp}` — todo sinal declara a qual horizonte temporal se aplica (§5.1); o mesmo fato pode gerar sinais opostos em horizontes diferentes, e isso é informação, não contradição.
 
 ### 4.1 Pré-requisito de cobertura: o Dossiê Setorial (bloqueante)
 
@@ -216,6 +216,28 @@ Regras da avaliação segregada:
 
 ## 5. Comitê de investimento (decisão)
 
+### 5.1 Estrutura temporal: cinco livros de análise e carteira
+
+Análises e posições são **separadas e estruturadas por horizonte temporal**, em cinco livros. Cada livro tem pergunta própria, sinais dominantes, cadência de revisão e orçamento de risco — e uma tese pertence a exatamente um livro:
+
+| Livro | Janela | Pergunta que responde | Sinais dominantes | Cadência de revisão | Orçamento de risco indicativo* |
+|---|---|---|---|---|---|
+| **Curtíssimo prazo** | dias (1–10) | O mercado vai reagir errado/demais a este evento? | Fato relevante recém-publicado, notícia de alto impacto, litígio súbito, monitor intradiário, Sentimento | Contínua (orientada a evento) | 0–5% |
+| **Curto prazo** | semanas a 1 trimestre | O próximo resultado confirma ou surpreende? | Promessa×entrega do trimestre, revisões de expectativa, momentum, fluxo de notícias, sinais rápidos de Pessoas (layoffs, êxodo) | Diária | 5–10% |
+| **Médio prazo** | 3–18 meses | O ciclo do setor e a execução da estratégia estão a favor? | Painéis setoriais e de mercados atendidos, vento setorial do Macro, execução do guidance anual, desempenho relativo vs. peers | Semanal | 10–20% |
+| **Longo prazo** | 18 meses–5 anos | A vantagem competitiva vai se expandir? | Fundamentalista estrutural, VRIO/moat, Motor 2 maturando, radar de disrupção, qualidade de alocação de capital | Mensal | 20–30% |
+| **Retenção geral (núcleo)** | indefinida ("hold") | Esta empresa merece ficar na carteira independentemente do ciclo? | Moat comprovado + execução consistente nos 10 anos de histórico + posição relativa dominante sustentada; giro mínimo | Trimestral (revisão profunda) | 40–60% |
+
+\* Percentuais do PL alocáveis por livro — parâmetros do motor de risco, calibrados no backtest e revisados pelo gestor humano; a soma dos limites pode exceder 100% porque são tetos, não alocações fixas.
+
+Regras da estrutura temporal:
+
+1. **Todo sinal declara horizonte** e toda tese pertence a um livro — a ordem herda o livro da tese (rastreável no OMS).
+2. **Horizontes não se anulam:** sinal negativo de curtíssimo prazo não derruba tese de longo prazo da mesma empresa — pode, no máximo, ajustar *timing* e tamanho de entrada. O PM decide por livro, e a mesma empresa pode ter posições em livros diferentes com direções diferentes (ex.: núcleo comprado + tático reduzido pré-evento), desde que o líquido respeite os limites.
+3. **Promoção e rebaixamento entre livros são decisões explícitas:** uma posição de médio prazo que se prova pode ser promovida ao núcleo (nova tese, novo gatilho de invalidação); uma posição de núcleo cuja tese enfraquece é rebaixada antes de ser vendida — cada movimento vira registro auditável.
+4. **Cadência de revisão é mínima obrigatória**, não máxima: qualquer evento com relevância alta (classificador §3.2) reabre a análise do livro afetado imediatamente.
+5. **Atribuição de performance por livro** (além de por agente): o fundo aprende em qual horizonte tem vantagem real — e realoca orçamento de risco para onde o edge está comprovado.
+
 O **Agente Gestor (PM)** consolida os sinais em decisões:
 
 1. **Rodada de debate**: para os ativos com sinais fortes ou divergentes, o PM confronta os agentes (padrão multi-agente adversarial — um agente "advogado do diabo" tenta derrubar a tese).
@@ -227,7 +249,7 @@ O **Agente Gestor (PM)** consolida os sinais em decisões:
 
 Camada determinística (não-LLM, regras duras) que valida cada proposta:
 
-- Limites por posição (ex.: máx. 10% do PL em um ativo), por setor e de exposição bruta/líquida.
+- Limites por posição (ex.: máx. 10% do PL em um ativo), por setor, por **livro/horizonte (§5.1)** e de exposição bruta/líquida.
 - Position sizing por volatilidade (risk parity simplificado / Kelly fracionado).
 - Stop-loss e take-profit obrigatórios por posição, definidos na tese.
 - VaR e drawdown máximo do portfólio; **circuit breaker**: acima do limite, o sistema só reduz risco, nunca aumenta.
@@ -279,7 +301,7 @@ Registro próprio de todas as ordens e posições (não confiar só na corretora
 | 08:30 | Motor de risco valida propostas → fila de ordens do dia (e pedidos de aprovação humana, se houver) |
 | 10:00–17:00 | Execução com algoritmo simples (TWAP/limites); monitor intraday reage a fatos relevantes novos |
 | 18:00 | Reconciliação com a corretora; cálculo de P&L |
-| 18:30 | **Relatório diário**: posições, resultado, decisões do dia com teses, sinais novos — enviado ao gestor humano |
+| 18:30 | **Relatório diário**: posições e resultado **por livro/horizonte (§5.1)**, decisões do dia com teses, sinais novos, promoções/rebaixamentos entre livros — enviado ao gestor humano |
 
 O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto impacto dispara reavaliação imediata do ativo, fora do ciclo.
 
@@ -296,7 +318,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 - `econ_series` — séries econômicas das duas camadas do §4.3 (setoriais: 10 anos; globais: 30 anos), com fonte, frequência, peso e check de frescor.
 - `signal_documents` — todo conteúdo ingerido, normalizado, com vínculo a ativos.
 - `signals` — saídas dos agentes (score, confiança, evidências → documentos).
-- `theses` — teses de investimento versionadas (aberta, atualizada, invalidada, encerrada).
+- `theses` — teses de investimento versionadas (aberta, atualizada, invalidada, encerrada), cada uma vinculada a um **livro/horizonte** (§5.1), com histórico de promoções/rebaixamentos entre livros.
 - `orders` / `fills` / `positions` — OMS.
 - `portfolio_snapshots` — foto diária para P&L e atribuição de performance.
 - `agent_runs` — log de cada execução de agente (prompt, custo, latência) para auditoria e melhoria.
