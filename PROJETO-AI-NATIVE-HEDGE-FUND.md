@@ -1,0 +1,276 @@
+# Projeto: AI-Native Hedge Fund
+
+> **Status:** Documento de projeto (design). Nada aqui foi construído — este arquivo define visão, arquitetura, componentes, fluxos, stack sugerida, riscos e roadmap para uma futura implementação.
+
+---
+
+## 1. Visão e objetivo
+
+Um fundo de investimento **AI-native**: a inteligência artificial não é uma ferramenta auxiliar, mas o núcleo do processo de investimento. O sistema:
+
+1. **Consome conteúdo diariamente** de dezenas de fontes — dados de mercado, análises de research, notícias, fatos relevantes (CVM/SEC), LinkedIn, Glassdoor, redes sociais e dados alternativos.
+2. **Interpreta sinais de mercado** cruzando informações estruturadas (preço, volume, fundamentos) com não estruturadas (texto, sentimento, movimentação de pessoas).
+3. **Acompanha empresas, mercados e concorrentes** de forma contínua, mantendo uma "memória" viva por ativo.
+4. **Decide estratégias de compra e venda de ações** por meio de um comitê de agentes de IA, com gestão de risco automatizada e supervisão humana configurável.
+5. **Executa ordens** via API de corretora, com trilha de auditoria completa de cada decisão.
+
+### Princípios AI-native
+
+- **Toda informação vira sinal**: cada dado ingerido é normalizado, indexado (embeddings) e associado a um ou mais tickers.
+- **Decisão explicável**: nenhuma ordem é enviada sem uma tese escrita pelo agente, com as evidências que a sustentam.
+- **Humano no circuito (configurável)**: modos *autônomo*, *aprovação por alçada* (ordens acima de X exigem OK humano) e *somente sugestão*.
+- **Backtest antes de produção**: toda estratégia roda em simulação e paper trading antes de tocar dinheiro real.
+
+---
+
+## 2. Arquitetura macro
+
+```mermaid
+flowchart TB
+    subgraph FONTES["1 · Fontes de dados"]
+        MD[Market data<br/>preços, volume, book]
+        FR[Fatos relevantes<br/>CVM / SEC filings]
+        NEWS[Notícias e análises<br/>portais, research, feeds RSS]
+        LI[LinkedIn<br/>contratações, saídas, vagas]
+        GD[Glassdoor<br/>clima interno, reviews]
+        ALT[Dados alternativos<br/>redes sociais, buscas, apps]
+    end
+
+    subgraph INGESTAO["2 · Ingestão e normalização"]
+        COL[Coletores agendados<br/>APIs + provedores licenciados]
+        NORM[Normalização, dedup,<br/>entity linking → ticker]
+        LAKE[(Data Lake<br/>bruto + curado)]
+        VEC[(Índice vetorial<br/>embeddings)]
+    end
+
+    subgraph INTEL["3 · Camada de inteligência (agentes)"]
+        A1[Agente Fundamentalista]
+        A2[Agente de Sentimento]
+        A3[Agente Técnico/Quant]
+        A4[Agente de Pessoas<br/>LinkedIn + Glassdoor]
+        A5[Agente Macro]
+        A6[Agente de Concorrência]
+    end
+
+    subgraph DECISAO["4 · Comitê de investimento"]
+        PM[Agente Gestor PM<br/>debate, tese, score]
+        RISK[Motor de risco<br/>limites, sizing, VaR]
+    end
+
+    subgraph EXEC["5 · Execução"]
+        OMS[OMS interno<br/>ordens, estado, auditoria]
+        BROKER[Adaptador de corretora<br/>API compra/venda]
+    end
+
+    FONTES --> COL --> NORM --> LAKE
+    NORM --> VEC
+    LAKE --> INTEL
+    VEC --> INTEL
+    INTEL --> PM --> RISK --> OMS --> BROKER
+    BROKER -->|fills, posições| OMS
+    OMS -->|feedback de performance| PM
+```
+
+---
+
+## 3. Camada de fontes e ingestão
+
+### 3.1 Fontes previstas
+
+| Categoria | Exemplos | Forma de acesso |
+|---|---|---|
+| Market data | B3, NYSE/NASDAQ — preços EOD e intraday, volume | APIs: Alpaca, Polygon.io, Yahoo Finance, Cedro/Comdinheiro (BR) |
+| Fatos relevantes / filings | CVM (RAD/Empresas.NET), SEC EDGAR | Portais públicos com feed estruturado (gratuitos) |
+| Notícias e análises | Valor, InfoMoney, Bloomberg, Reuters, relatórios de research, RSS | APIs de notícias (NewsAPI, GNews), assinaturas, RSS |
+| LinkedIn | Vagas abertas, contratações de executivos, saídas em massa | **Somente via provedores licenciados** (ex.: Coresignal, Bright Data datasets, Revelio Labs) — scraping direto viola os termos de uso |
+| Glassdoor | Nota da empresa, tendência de reviews, sentimento sobre liderança | Provedores de dados agregados (mesma restrição acima) |
+| Dados alternativos | X/Twitter, Reddit, Google Trends, downloads de apps | APIs oficiais e provedores especializados |
+
+### 3.2 Pipeline de ingestão
+
+1. **Coletores agendados** (cron por fonte, com frequência própria: intraday para preço, diário para notícias/reviews, semanal para LinkedIn/Glassdoor).
+2. **Normalização**: tudo vira um `SignalDocument` padrão — `{fonte, timestamp, tickers[], tipo, texto, metadados, url}`.
+3. **Entity linking**: NER + dicionário de empresas para mapear "a varejista de Cascavel" → ticker correto; um documento pode afetar vários tickers (empresa + concorrentes).
+4. **Deduplicação** por hash semântico (a mesma notícia replicada em 10 portais conta uma vez).
+5. **Armazenamento duplo**: bruto no data lake (reprocessável) e curado no banco relacional + índice vetorial para busca semântica pelos agentes.
+
+---
+
+## 4. Camada de inteligência — os agentes
+
+Cada agente é um LLM com prompt, ferramentas e memória próprios. Rodam no ciclo diário e sob demanda (quando chega um fato relevante, por exemplo).
+
+| Agente | Insumos | Saída |
+|---|---|---|
+| **Fundamentalista** | Balanços, fatos relevantes, guidance, múltiplos | Avaliação da tese fundamentalista por ativo (score −5..+5 + justificativa) |
+| **Sentimento** | Notícias, redes sociais, análises de terceiros | Índice de sentimento por ativo e por setor, com detecção de mudança de tendência |
+| **Técnico/Quant** | Séries de preço/volume, indicadores, fatores | Sinais técnicos e de fatores (momentum, valor, qualidade) |
+| **Pessoas (LinkedIn+Glassdoor)** | Fluxo de contratações/saídas, vagas por área, reviews | Sinais antecedentes: êxodo de engenheiros, contratação agressiva em nova linha de negócio, queda de moral pré-resultado |
+| **Macro** | Juros, câmbio, commodities, calendário econômico | Regime de mercado (risk-on/risk-off) que condiciona o apetite do comitê |
+| **Concorrência** | Mesmos dados, organizados por setor | Mapa competitivo: quem ganha/perde share, movimentos que afetam pares |
+
+Cada saída é um **sinal versionado e auditável**: `{agente, ticker, score, confiança, evidências[], timestamp}`.
+
+---
+
+## 5. Comitê de investimento (decisão)
+
+O **Agente Gestor (PM)** consolida os sinais em decisões:
+
+1. **Rodada de debate**: para os ativos com sinais fortes ou divergentes, o PM confronta os agentes (padrão multi-agente adversarial — um agente "advogado do diabo" tenta derrubar a tese).
+2. **Tese escrita**: toda decisão gera um documento — o que comprar/vender, por quê, quais evidências, qual o gatilho de saída, qual o risco que invalida a tese.
+3. **Score final** por ativo → lista-alvo de portfólio (pesos desejados).
+4. O delta entre portfólio-alvo e posição atual vira **propostas de ordem**.
+
+### Motor de risco (veto e dimensionamento)
+
+Camada determinística (não-LLM, regras duras) que valida cada proposta:
+
+- Limites por posição (ex.: máx. 10% do PL em um ativo), por setor e de exposição bruta/líquida.
+- Position sizing por volatilidade (risk parity simplificado / Kelly fracionado).
+- Stop-loss e take-profit obrigatórios por posição, definidos na tese.
+- VaR e drawdown máximo do portfólio; **circuit breaker**: acima do limite, o sistema só reduz risco, nunca aumenta.
+- Filtro de liquidez (não montar posição maior que X% do volume médio diário).
+- Alçadas: ordens acima de um valor exigem aprovação humana (notificação push/e-mail com a tese anexa).
+
+---
+
+## 6. Execução — API de compra e venda
+
+### 6.1 Abstração `BrokerAdapter`
+
+Interface única para que a troca de corretora não afete o resto do sistema:
+
+```
+BrokerAdapter
+├── get_positions() / get_balance()
+├── place_order(ticker, side, qty, type, limit_price?, stop?)
+├── cancel_order(order_id)
+├── get_order_status(order_id)
+└── stream_fills(callback)
+```
+
+### 6.2 Corretoras candidatas
+
+| Mercado | Opção | Observações |
+|---|---|---|
+| EUA | **Alpaca** | API-first, paper trading nativo, ideal para MVP |
+| EUA/global | **Interactive Brokers** | Mais completa (ações BR via ADR, opções, FX); API mais complexa |
+| Brasil | **MetaTrader 5** via corretoras que o suportam | Caminho mais viável para B3 no varejo |
+| Brasil | DMA/FIX direto na B3 | Só faz sentido em estágio institucional (custo alto) |
+
+**Recomendação para o MVP**: começar com **Alpaca em paper trading** (custo zero, API limpa), validar o ciclo completo, e só então plugar corretora real / mercado brasileiro.
+
+### 6.3 OMS interno
+
+Registro próprio de todas as ordens e posições (não confiar só na corretora): estado de cada ordem, fills parciais, reconciliação diária com a corretora, e trilha de auditoria ligando **ordem → tese → sinais → documentos-fonte**.
+
+---
+
+## 7. Fluxo diário (linha do tempo)
+
+| Horário (BRT) | Etapa |
+|---|---|
+| 05:00 | Coleta noturna: notícias, filings, dados de fechamento global, atualização semanal de LinkedIn/Glassdoor quando aplicável |
+| 06:00 | Normalização, dedup, embeddings; atualização da memória por ativo |
+| 06:30 | Agentes analistas rodam em paralelo e publicam sinais |
+| 07:30 | Comitê: PM consolida, debate os casos divergentes, escreve/atualiza teses |
+| 08:30 | Motor de risco valida propostas → fila de ordens do dia (e pedidos de aprovação humana, se houver) |
+| 10:00–17:00 | Execução com algoritmo simples (TWAP/limites); monitor intraday reage a fatos relevantes novos |
+| 18:00 | Reconciliação com a corretora; cálculo de P&L |
+| 18:30 | **Relatório diário**: posições, resultado, decisões do dia com teses, sinais novos — enviado ao gestor humano |
+
+O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto impacto dispara reavaliação imediata do ativo, fora do ciclo.
+
+---
+
+## 8. Modelo de dados (núcleo)
+
+- `assets` — tickers, setor, pares/concorrentes, metadados.
+- `signal_documents` — todo conteúdo ingerido, normalizado, com vínculo a ativos.
+- `signals` — saídas dos agentes (score, confiança, evidências → documentos).
+- `theses` — teses de investimento versionadas (aberta, atualizada, invalidada, encerrada).
+- `orders` / `fills` / `positions` — OMS.
+- `portfolio_snapshots` — foto diária para P&L e atribuição de performance.
+- `agent_runs` — log de cada execução de agente (prompt, custo, latência) para auditoria e melhoria.
+
+---
+
+## 9. Stack tecnológica sugerida
+
+| Camada | Sugestão |
+|---|---|
+| Linguagem | Python (ecossistema financeiro + IA) |
+| Orquestração de pipelines | Prefect ou Airflow; eventos via fila (Redis Streams / SQS) |
+| Agentes de IA | Claude API (Agent SDK) — agentes com ferramentas, saída estruturada e citação de evidências |
+| Banco relacional | PostgreSQL |
+| Índice vetorial | pgvector (simples, mesmo Postgres) |
+| Data lake | S3 + Parquet |
+| Backtesting | vectorbt ou backtrader; simulador próprio para a camada de decisão por agentes |
+| Execução | Alpaca SDK (MVP) atrás do `BrokerAdapter` |
+| Observabilidade | Grafana + logs estruturados; alertas por Telegram/e-mail |
+| Painel do gestor | Web app simples (Next.js ou Streamlit): portfólio, teses, aprovações pendentes, P&L |
+
+---
+
+## 10. Backtesting e validação
+
+1. **Replay histórico**: reprocessar o pipeline com dados de datas passadas, com corte temporal rígido (o agente só vê o que existia até aquele dia — cuidado com look-ahead bias inclusive no conhecimento do LLM).
+2. **Paper trading** por no mínimo 60–90 dias antes de capital real.
+3. **Métricas**: Sharpe, Sortino, drawdown máximo, hit rate por agente (qual agente acerta mais?), custo de transação simulado.
+4. **Atribuição por agente**: medir a contribuição de cada tipo de sinal ao resultado — é o mecanismo de melhoria contínua do comitê.
+
+---
+
+## 11. Compliance e aspectos legais (crítico)
+
+- **Gestão de recursos de terceiros exige autorização da CVM** (registro de gestora, Resolução CVM 21) e estrutura de fundo (Resolução CVM 175). Para **capital próprio**, o sistema pode operar como pessoa física/PJ investindo, sem registro de gestora.
+- **LinkedIn e Glassdoor proíbem scraping direto** nos termos de uso. O projeto deve usar **provedores de dados licenciados** (Revelio Labs, Coresignal etc.) ou APIs oficiais — nunca scraping próprio dessas plataformas.
+- **LGPD**: dados de pessoas (ex.: movimentação de executivos) devem ser tratados de forma agregada e com base legal adequada.
+- **Somente informação pública**: o pipeline deve ter salvaguarda explícita contra uso de informação material não pública (insider trading é crime — Lei 6.385/76 art. 27-D).
+- **Trilha de auditoria completa**: toda ordem rastreável até as fontes que a motivaram (também é proteção regulatória).
+
+---
+
+## 12. Custos estimados de operação (ordem de grandeza, mensal)
+
+| Item | Faixa |
+|---|---|
+| APIs de LLM (agentes, ~50–200 ativos cobertos) | US$ 300 – 2.000 |
+| Market data (tempo real ou EOD premium) | US$ 0 (EOD gratuito) – 500 |
+| Dados LinkedIn/Glassdoor licenciados | US$ 500 – 5.000 (é o item mais caro; no MVP, começar sem ou com amostras) |
+| Notícias/research | US$ 0 – 500 |
+| Infraestrutura (cloud) | US$ 100 – 400 |
+
+---
+
+## 13. Roadmap em fases
+
+**Fase 1 — Fundação (4–6 semanas)**
+Pipeline de ingestão (market data + notícias + fatos relevantes CVM/EDGAR), modelo de dados, 2 agentes (Fundamentalista e Sentimento), relatório diário por e-mail. *Nenhuma ordem — só leitura e sinais.*
+
+**Fase 2 — Comitê e simulação (4–6 semanas)**
+Agentes Técnico e Macro, Agente PM com teses escritas, motor de risco, backtest com replay histórico, início do paper trading via Alpaca.
+
+**Fase 3 — Sinais alternativos (4 semanas)**
+Integração de provedor licenciado de dados LinkedIn/Glassdoor, Agente de Pessoas e de Concorrência, monitor intraday orientado a eventos.
+
+**Fase 4 — Capital real (contínuo)**
+Após 60–90 dias de paper trading com métricas aceitáveis: capital próprio pequeno, alçadas de aprovação humana ativas, painel do gestor, atribuição de performance por agente e ciclo de melhoria contínua.
+
+---
+
+## 14. Principais riscos do projeto
+
+| Risco | Mitigação |
+|---|---|
+| Alucinação do LLM em análise financeira | Saída estruturada com evidências obrigatórias; motor de risco determinístico com poder de veto; debate adversarial |
+| Look-ahead bias no backtest | Corte temporal rígido nos dados; validação só com paper trading em tempo real |
+| Custo/indisponibilidade de dados de LinkedIn/Glassdoor | Tratar como sinal complementar (Fase 3), nunca como dependência do núcleo |
+| Overtrading / custos de transação | Limite de giro mensal no motor de risco; decisões diárias, não intraday, como padrão |
+| Risco regulatório (gestão de terceiros) | Operar apenas capital próprio até haver estrutura CVM |
+| Falha de execução (API da corretora fora) | OMS com reconciliação, circuit breaker e kill switch manual |
+
+---
+
+*Documento de projeto — v1. Próximo passo sugerido: validar a Fase 1 do roadmap e escolher o universo inicial de ativos (ex.: 30 ações do Ibovespa ou S&P 100).*
