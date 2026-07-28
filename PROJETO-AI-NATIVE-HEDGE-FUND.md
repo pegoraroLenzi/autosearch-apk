@@ -83,6 +83,7 @@ flowchart TB
 | Market data | B3, NYSE/NASDAQ — preços EOD e intraday, volume | APIs: Alpaca, Polygon.io, Yahoo Finance, Cedro/Comdinheiro (BR) |
 | Fatos relevantes / filings | CVM (RAD/Empresas.NET), SEC EDGAR | Portais públicos com feed estruturado (gratuitos) |
 | Notícias e análises | Valor, InfoMoney, Bloomberg, Reuters, relatórios de research, RSS | APIs de notícias (NewsAPI, GNews), assinaturas, RSS |
+| **Portais de notícia nacionais e regionais** | Cobertura ampla: portais nacionais + **portais regionais da região de sede e operações de cada empresa** (mesmo mapa georreferenciado dos portais de governo). Critério de captura deliberadamente largo: qualquer notícia que guarde **qualquer relação** com a empresa, com o mercado, com a economia ou com regulamentações/legislações que possam afetar o negócio **direta ou indiretamente** — a triagem fina é feita depois, pelo classificador de relevância (§3.2) | RSS/APIs dos portais; jornais regionais e locais das praças relevantes |
 | LinkedIn | Vagas abertas, contratações de executivos, saídas em massa | **Somente via provedores licenciados** (ex.: Coresignal, Bright Data datasets, Revelio Labs) — scraping direto viola os termos de uso |
 | Glassdoor | Nota da empresa, tendência de reviews, sentimento sobre liderança | Provedores de dados agregados (mesma restrição acima) |
 | Dados alternativos | X/Twitter, Reddit, Google Trends, downloads de apps | APIs oficiais e provedores especializados |
@@ -95,8 +96,9 @@ flowchart TB
    - **Monitoramento governamental georreferenciado**: no onboarding, cada companhia é cadastrada com sede (município/UF) e localidades de operações relevantes (plantas, minas, CDs); o pipeline assina automaticamente os portais oficiais e diários das três esferas correspondentes — federal sempre, estadual e municipal conforme o mapa de presença da empresa. Sinais típicos: mudança tributária local (ICMS, ISS), licenciamento ambiental, licitações e concessões, incentivos fiscais, obras de infraestrutura que afetam a operação.
 2. **Normalização**: tudo vira um `SignalDocument` padrão — `{fonte, timestamp, tickers[], tipo, texto, metadados, url}`.
 3. **Entity linking**: NER + dicionário de empresas para mapear "a varejista de Cascavel" → ticker correto; um documento pode afetar vários tickers (empresa + concorrentes).
-4. **Deduplicação** por hash semântico (a mesma notícia replicada em 10 portais conta uma vez).
-5. **Armazenamento duplo**: bruto no data lake (reprocessável) e curado no banco relacional + índice vetorial para busca semântica pelos agentes.
+4. **Classificador de relevância e canal de impacto** (a contrapartida necessária da captura ampla): todo documento recebe (a) **tipo de relação** — menção direta à empresa · setor/concorrentes · economia/mercado · regulamentação/legislação; (b) **direção do impacto** — direto ou indireto, e quais tickers afeta (via setor e via mapa geográfico de sede/operações — ex.: lei estadual nova afeta as empresas com operação naquele estado); (c) **score de relevância** que prioriza a fila dos agentes. Nada é descartado — documento de baixa relevância fica indexado e pesquisável (a memória por ativo o recupera se virar padrão), mas só o que passa do limiar entra no ciclo diário de análise. O limiar é calibrado pela atribuição de performance: se sinais de origem regional/regulatória provarem valor, o peso sobe.
+5. **Deduplicação** por hash semântico (a mesma notícia replicada em 10 portais conta uma vez).
+6. **Armazenamento duplo**: bruto no data lake (reprocessável) e curado no banco relacional + índice vetorial para busca semântica pelos agentes.
 
 ---
 
