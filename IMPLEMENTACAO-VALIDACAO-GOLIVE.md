@@ -31,7 +31,7 @@ flowchart LR
 - Repositório, CI/CD (lint, testes, build), infraestrutura como código (Terraform), ambientes `dev` e `prod` separados desde o dia 1.
 - Modelo de dados no PostgreSQL + migrações versionadas (Alembic).
 - Coletores: market data EOD (fonte gratuita) + fatos relevantes CVM/EDGAR + 2–3 feeds RSS de notícias.
-- **Backfill histórico de 8 anos** (`PROJETO...md` §4.2) para o universo inicial: todos os trimestres (ITR/DFP da CVM ou 10-Q/10-K do EDGAR), histórico completo de fatos relevantes com timestamp original e preços ajustados — com check automático de completude (≥ 32 trimestres sem lacuna) que marca cada ativo como `histórico_completo`.
+- **Backfill histórico de 10 anos** (`PROJETO...md` §4.2) para o universo inicial: todos os trimestres (ITR/DFP da CVM ou 10-Q/10-K do EDGAR), histórico completo de fatos relevantes com timestamp original e preços ajustados — com check automático de completude (≥ 40 trimestres sem lacuna) que marca cada ativo como `histórico_completo`.
 - Pipeline de normalização → `SignalDocument`, entity linking com dicionário inicial de ~30 tickers, dedup.
 - **Entregável verificável**: rodada diária automática populando o banco; relatório de qualidade de dados por e-mail, incluindo o painel de completude histórica por ativo.
 
@@ -83,7 +83,7 @@ Para *qualquer* sequência de propostas e *qualquer* estado de portfólio:
 - Com circuit breaker ativo, nenhuma ordem aumenta exposição.
 - Toda ordem aprovada tem stop definido.
 - Nenhuma ordem é aprovada para ativo cujo setor não tem Dossiê Setorial em estado `aprovado` e dentro da validade.
-- Nenhuma ordem é aprovada para ativo sem estado `histórico_completo` (≥ 8 anos / 32 trimestres + fatos relevantes íntegros, janela móvel em dia).
+- Nenhuma ordem é aprovada para ativo sem estado `histórico_completo` (≥ 10 anos / 40 trimestres + fatos relevantes íntegros, janela móvel em dia).
 - Ordem com tamanho > X% do volume médio diário nunca é aprovada.
 - O motor é determinístico: mesma entrada → mesma saída, sempre.
 
@@ -170,7 +170,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] Evals de todos os agentes passando na versão exata de prompt/modelo que vai ao ar (versões congeladas; mudança pós-go-live segue o mesmo processo de eval).
 - [ ] Limites de risco e alçadas revisados e assinados pelo gestor humano.
 - [ ] 100% dos ativos do universo com Dossiê Setorial `aprovado`, dentro da validade e com aprovação humana registrada.
-- [ ] 100% dos ativos do universo com `histórico_completo`: ≥ 8 anos de trimestres sem lacuna, arquivo integral de fatos relevantes e janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente).
+- [ ] 100% dos ativos do universo com `histórico_completo`: ≥ 10 anos de trimestres sem lacuna, arquivo integral de fatos relevantes e janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente).
 
 **Operacional**
 - [ ] Runbooks: corretora fora, dado corrompido, drawdown > limite, rollback de versão.
