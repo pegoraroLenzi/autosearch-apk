@@ -35,6 +35,7 @@ flowchart LR
 - **Entregável verificável**: rodada diária automática populando o banco; relatório de qualidade de dados por e-mail.
 
 ### Sprint 3 — Primeiros agentes
+- **Dossiês Setoriais do universo inicial** (`PROJETO...md` §4.1): pipeline de curadoria (agente pesquisador + fontes do padrão da `FUNDAMENTACAO-TEORICA.md` §5.2), revisão e aprovação humana, versionamento no banco. Nenhum ticker é ativado para análise sem dossiê `aprovado` — isso dimensiona o universo inicial (menos setores, mais profundidade).
 - Índice vetorial (pgvector) + memória por ativo.
 - Agente Fundamentalista e Agente de Sentimento com **saída estruturada validada por schema** (score, confiança, evidências com IDs de documentos reais).
 - Tabela `agent_runs` com custo, latência e prompt versionado.
@@ -80,6 +81,7 @@ Para *qualquer* sequência de propostas e *qualquer* estado de portfólio:
 - Nenhuma posição resultante excede o limite por ativo/setor.
 - Com circuit breaker ativo, nenhuma ordem aumenta exposição.
 - Toda ordem aprovada tem stop definido.
+- Nenhuma ordem é aprovada para ativo cujo setor não tem Dossiê Setorial em estado `aprovado` e dentro da validade.
 - Ordem com tamanho > X% do volume médio diário nunca é aprovada.
 - O motor é determinístico: mesma entrada → mesma saída, sempre.
 
@@ -165,6 +167,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] Gates 1, 2 e 3 formalmente aprovados, com relatórios arquivados.
 - [ ] Evals de todos os agentes passando na versão exata de prompt/modelo que vai ao ar (versões congeladas; mudança pós-go-live segue o mesmo processo de eval).
 - [ ] Limites de risco e alçadas revisados e assinados pelo gestor humano.
+- [ ] 100% dos ativos do universo com Dossiê Setorial `aprovado`, dentro da validade e com aprovação humana registrada.
 
 **Operacional**
 - [ ] Runbooks: corretora fora, dado corrompido, drawdown > limite, rollback de versão.

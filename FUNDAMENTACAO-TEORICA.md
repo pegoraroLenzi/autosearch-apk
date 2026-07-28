@@ -97,6 +97,33 @@ O cânone acadêmico da disciplina, na ordem histórica — cada obra vira um "i
 
 **Síntese operacional do agente:** ler a estratégia declarada com Rumelt (é estratégia ou aspiração?), testar a vantagem com Barney/VRIO e Porter (é sustentável?), conferir coerência com Chandler e com a alocação de capital real (Mintzberg: o padrão revelado > o discurso), precificar movimentos com Ansoff e Hamel & Prahalad, antecipar reações com teoria dos jogos, e devolver tudo ao comitê como **cenários à la Shell/Wack** — em quais futuros a tese sobrevive e o que a invalida.
 
+### 5.2 Bases teóricas setoriais — pré-requisito por empresa analisada
+
+**Regra do projeto (`PROJETO...md` §4.1): nenhuma empresa entra no universo analisável sem um Dossiê Setorial aprovado** — uma base teórica forte sobre o mercado em que ela atua. Esta seção define o alicerce comum e o padrão de fontes de cada dossiê.
+
+**Fundamento transversal (vale para todo setor):**
+
+- **Tirole, *The Theory of Industrial Organization* (1988)** — Nobel 2014. A teoria rigorosa de como estruturas de mercado (monopólio, oligopólio, competição) determinam preços, margens e poder de mercado. É a base científica por trás das Cinco Forças.
+- **Besanko, Dranove, Shanley & Schaefer, *Economics of Strategy* (1996, sucessivas edições)** — o texto acadêmico padrão que conecta economia industrial à análise prática de setores; template intelectual do conteúdo "economia do setor" de cada dossiê.
+- **Damodaran (NYU Stern)** — datasets públicos e material de valuation **por setor** (margens, betas, múltiplos por indústria, atualizados anualmente e com metodologia aberta): [pages.stern.nyu.edu/~adamodar](https://pages.stern.nyu.edu/~adamodar/). Referência de benchmarks setoriais verificáveis.
+- **Porter, "How Competitive Forces Shape Strategy" (*HBR*, 1979)** — a aplicação setorial das Cinco Forças, refeita dossiê a dossiê.
+
+**Padrão de fontes por setor (critério do §1 aplicado a mercados):**
+
+| Tipo de fonte | Exemplos (Brasil / global) | Status |
+|---|---|---|
+| Regulador oficial do setor | BCB e relatórios de estabilidade financeira (bancos); ANEEL/ONS/EPE (energia); ANP (óleo & gás); Anatel (telecom); ANS (saúde suplementar); CVM (mercado de capitais) | **Preferencial** — dados primários, metodologia pública |
+| Organismos internacionais | BIS/Basileia (bancos), IEA (energia), USGS (mineração), FAO/USDA (agro), OMS (saúde) | **Preferencial** |
+| Estatísticas oficiais | IBGE, séries do BCB (SGS), FRED, Eurostat | **Preferencial** |
+| Literatura acadêmica do setor | Journals de economia/finança aplicada; handbooks setoriais (ex.: *Handbook of Banking*, Oxford) | **Preferencial** |
+| Associações setoriais com metodologia pública | ABRAINC/CBIC (construção), ANFAVEA (autos), ABIQUIM (química), FEBRABAN (bancos) | Aceitável — checar conflito de interesse (associação defende o setor) |
+| Research de bancos/consultorias | Relatórios setoriais de research | Aceitável como fonte secundária — nunca única |
+| "Market reports" vendidos sem metodologia (mercado de US$ X bi crescendo Y%...) | Relatórios genéricos de firmas de pesquisa de mercado sem amostra/método divulgado | **Excluído** (mesmo critério do §9) |
+
+**Exemplo do padrão aplicado (setor bancário, o primeiro dossiê do universo inicial):** economia do setor via *Handbook of Banking* e Besanko; métricas e riscos via arcabouço de Basileia (BIS) e Relatório de Estabilidade Financeira do BCB; benchmarks de NIM/ROE via Damodaran e dados públicos do BCB (IF.data); estrutura competitiva via Tirole/Porter aplicados à concentração bancária brasileira; regulação via normativos CMN/BCB. Cada setor novo do universo repete esse gabarito antes de o primeiro sinal ser emitido.
+
+**Racional final:** Buffett chama isso de círculo de competência; nós o tornamos **verificável e bloqueante** — o círculo de competência do fundo é, literalmente, o conjunto de dossiês setoriais aprovados no banco de dados.
+
 ---
 
 ## 6. Casos reais e lições aprendidas (a "jurisprudência" do projeto)

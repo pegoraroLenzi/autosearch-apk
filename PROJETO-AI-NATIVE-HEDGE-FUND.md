@@ -113,6 +113,27 @@ Cada agente é um LLM com prompt, ferramentas e memória próprios. Rodam no cic
 
 Cada saída é um **sinal versionado e auditável**: `{agente, ticker, score, confiança, evidências[], timestamp}`.
 
+### 4.1 Pré-requisito de cobertura: o Dossiê Setorial (bloqueante)
+
+**Regra do sistema: nenhuma empresa é analisada sem uma base teórica forte e aprovada sobre o seu mercado de atuação.** Isso é formalizado no artefato **Dossiê Setorial** — condição de entrada de qualquer ticker no universo analisável.
+
+**Conteúdo mínimo de cada dossiê:**
+
+1. **Economia do setor** — como se ganha dinheiro nele: drivers de receita, estrutura de custos, margens típicas, intensidade de capital, ciclo e sazonalidade.
+2. **Estrutura competitiva** — Cinco Forças aplicadas ao setor, barreiras de entrada, dinâmica de consolidação, mapa dos players.
+3. **KPIs setoriais** — as métricas que realmente importam e seus benchmarks (ex.: NIM e índice de Basileia para bancos; same-store sales para varejo; EBITDA/tonelada para mineração; churn e ARPU para telecom) — impede o agente de avaliar um banco com métrica de varejista.
+4. **Regulação** — órgão regulador, regras que movem o setor, agenda regulatória em curso.
+5. **Riscos estruturais** — disrupção tecnológica, transição energética, dependências de commodity/câmbio.
+6. **Bibliografia setorial confiável** — fontes que passam no critério de confiabilidade da `FUNDAMENTACAO-TEORICA.md` §1 (academia, reguladores, dados oficiais), com as fontes duvidosas explicitamente excluídas.
+
+**Ciclo de vida:** o dossiê é redigido por um processo dedicado de curadoria (agente pesquisador + fontes verificadas), **revisado e aprovado por humano**, versionado no banco, e revalidado periodicamente (anual, ou imediatamente após mudança regulatória/estrutural relevante). Estados: `rascunho → em_revisão → aprovado → vencido`.
+
+**Enforcement (regra dura, em dois pontos):**
+- **Pipeline de análise**: agentes não emitem sinal para ticker cujo setor não tem dossiê `aprovado` — o dossiê é injetado no contexto de cada agente ao analisar o ativo.
+- **Motor de risco**: nenhuma ordem é aprovada para ativo sem dossiê setorial válido (invariante testada como as demais).
+
+Efeito prático: expandir o universo de ativos tem custo deliberado — cobrir um setor novo exige primeiro construir e aprovar a base teórica dele. É lentidão intencional: o sistema nunca opera o que não entende.
+
 ---
 
 ## 5. Comitê de investimento (decisão)
@@ -188,7 +209,8 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 
 ## 8. Modelo de dados (núcleo)
 
-- `assets` — tickers, setor, pares/concorrentes, metadados.
+- `assets` — tickers, setor, pares/concorrentes, metadados, vínculo ao dossiê setorial.
+- `sector_dossiers` — dossiês setoriais versionados (conteúdo, bibliografia, estado de aprovação, validade) — pré-requisito de análise (§4.1).
 - `signal_documents` — todo conteúdo ingerido, normalizado, com vínculo a ativos.
 - `signals` — saídas dos agentes (score, confiança, evidências → documentos).
 - `theses` — teses de investimento versionadas (aberta, atualizada, invalidada, encerrada).
