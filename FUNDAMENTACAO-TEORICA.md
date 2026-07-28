@@ -78,6 +78,25 @@ Os "gurus" filtrados pelo critério do §1 — entram os que criaram frameworks 
 - ⚠️ **Collins, *Good to Great* (2001)** — entra **somente com ressalva grave**: a metodologia sofre de viés de sobrevivência e efeito halo (ver Rosenzweig abaixo); várias empresas "great" decaíram depois (Circuit City faliu, Fannie Mae colapsou em 2008). Os conceitos (ex.: "Level 5 leadership") são hipóteses interessantes, não leis.
 - **Rosenzweig, *The Halo Effect* (2007)** — o antídoto metodológico para toda a literatura de gestão: demonstra como atribuímos qualidades à gestão a partir do resultado (e não o contrário). **Leitura obrigatória antes de qualquer livro de "empresas excelentes"** — e um alerta direto para o nosso Agente de Pessoas: reviews de Glassdoor também sofrem efeito halo do desempenho da ação.
 
+### 5.1 Planejamento estratégico (base do Agente de Planejamento Estratégico)
+
+O cânone acadêmico da disciplina, na ordem histórica — cada obra vira um "instrumento de leitura" que o agente aplica às empresas analisadas:
+
+- **Chandler, *Strategy and Structure* (1962)** — o estudo histórico fundador (MIT/Harvard, baseado em DuPont, GM, Sears, Standard Oil): "a estrutura segue a estratégia". Instrumento: quando a estrutura organizacional de uma empresa contradiz a estratégia anunciada, a estratégia é discurso.
+- **Ansoff, *Corporate Strategy* (1965)** — o pai do planejamento estratégico formal; a Matriz de Ansoff (produto×mercado) classifica o risco de qualquer movimento de crescimento anunciado (penetração < desenvolvimento < diversificação). Instrumento: precificar o risco de execução de cada expansão anunciada em fato relevante.
+- **Andrews / Learned et al., *Business Policy* (Harvard, 1965)** — origem acadêmica do que popularizou-se como SWOT: adequação entre competências internas e ambiente. Citado como raiz histórica; o agente usa as versões rigorosas modernas (VRIO, Cinco Forças), não o SWOT de slide.
+- **Porter, *Competitive Strategy* (1980) / *Competitive Advantage* (1985)** — já listado acima; para este agente, o instrumento específico é o teste de **consistência do posicionamento**: empresa "presa no meio" (nem custo, nem diferenciação) é red flag estrutural.
+- **Hamel & Prahalad, "The Core Competence of the Corporation" (*Harvard Business Review*, 1990)** — competências centrais como raiz da vantagem; diversificações longe da competência central historicamente destroem valor. Instrumento: avaliar aderência de M&A anunciado à competência central do comprador.
+- **Barney, "Firm Resources and Sustained Competitive Advantage" (*Journal of Management*, 1991)** — a Visão Baseada em Recursos (RBV) e o framework **VRIO** (Valioso, Raro, Inimitável, Organizado): o teste mais rigoroso de sustentabilidade de vantagem competitiva. É o critério formal do agente para responder "esse moat é real?" — complementar e mais operacional que o conceito informal de moat de Buffett.
+- **Teece, Pisano & Shuen, "Dynamic Capabilities and Strategic Management" (*Strategic Management Journal*, 1997)** — em setores em transformação, o que importa não é o recurso que a empresa tem, mas a capacidade de reconfigurá-lo. Instrumento: nos setores sob disrupção (cruzamento com Christensen), avaliar a capacidade adaptativa demonstrada, não o portfólio atual.
+- **Wack, "Scenarios: Uncharted Waters Ahead" (*Harvard Business Review*, 1985)** — o planejamento por cenários da Shell (que a preparou para o choque do petróleo de 1973); aprofundado por **Schoemaker, "Scenario Planning: A Tool for Strategic Thinking" (*Sloan Management Review*, 1995)**. É a metodologia formal da saída de cenários do agente: cenários não são previsões, são estruturas para testar em quais futuros a tese sobrevive.
+- **Rumelt, *Good Strategy / Bad Strategy* (2011)** — o filtro de qualidade: estratégia de verdade tem diagnóstico, política orientadora e ação coerente; "visões" com metas sem diagnóstico são *bad strategy*. Instrumento direto para ler investor days e planos plurianuais — empresa cuja "estratégia" é uma lista de aspirações recebe score baixo, por mais bonito que seja o deck.
+- **Brandenburger & Nalebuff, *Co-opetition* (1996)** — teoria dos jogos aplicada a estratégia (sobre a base de von Neumann & Morgenstern, 1944, e Schelling, *The Strategy of Conflict*, 1960 — Nobel 2005): rede de valor, complementadores, e antecipação de reação competitiva. Instrumento: prever a resposta dos concorrentes a um movimento anunciado (guerra de preço destrói a tese?).
+- **Mintzberg, *The Rise and Fall of Strategic Planning* (1994)** — já listado acima; para este agente é a **ressalva estrutural**: planejamento formal não é estratégia, e estratégias reais são parcialmente emergentes. O agente pondera menos o plano publicado e mais o padrão revelado de decisões (alocação de capital efetiva vs. discurso).
+- ⚠️ **Kim & Mauborgne, *Blue Ocean Strategy* (2005)** — citado apenas com ressalva: útil como vocabulário para inovação de valor, mas a metodologia sofre das mesmas críticas de seleção retrospectiva de casos que *Good to Great* (só analisa vencedores). Não usar como critério de score.
+
+**Síntese operacional do agente:** ler a estratégia declarada com Rumelt (é estratégia ou aspiração?), testar a vantagem com Barney/VRIO e Porter (é sustentável?), conferir coerência com Chandler e com a alocação de capital real (Mintzberg: o padrão revelado > o discurso), precificar movimentos com Ansoff e Hamel & Prahalad, antecipar reações com teoria dos jogos, e devolver tudo ao comitê como **cenários à la Shell/Wack** — em quais futuros a tese sobrevive e o que a invalida.
+
 ---
 
 ## 6. Casos reais e lições aprendidas (a "jurisprudência" do projeto)
@@ -131,6 +150,7 @@ Esta é a seção que transforma "olhar LinkedIn e Glassdoor" de intuição em e
 | Agente Técnico/Quant | Fama-French (fatores); Grinold & Kahn; Tsay |
 | Agente de Pessoas | **Edmans 2011; Green et al. 2019; Harter 2002**; Schein; Lazear; Rosenzweig (antídoto) |
 | Agente de Concorrência | Porter (Cinco Forças); Christensen |
+| Agente de Planejamento Estratégico | Rumelt; Barney (VRIO); Chandler; Ansoff; Hamel & Prahalad; Teece; Wack/Schoemaker (cenários); Brandenburger & Nalebuff; Mintzberg (ressalva) |
 | Comitê / PM | Meehl; Tetlock; Grinold & Kahn (breadth) |
 | Motor de risco | Kelly (sizing); Markowitz; Taleb (caudas); LTCM como caso-limite |
 | Backtesting / Gates | López de Prado; Bailey et al.; Harvey et al.; Fama (EMH como hipótese nula) |

@@ -50,6 +50,7 @@ flowchart TB
         A4[Agente de Pessoas<br/>LinkedIn + Glassdoor]
         A5[Agente Macro]
         A6[Agente de Concorrência]
+        A7[Agente de Planejamento<br/>Estratégico]
     end
 
     subgraph DECISAO["4 · Comitê de investimento"]
@@ -108,6 +109,7 @@ Cada agente é um LLM com prompt, ferramentas e memória próprios. Rodam no cic
 | **Pessoas (LinkedIn+Glassdoor)** | Fluxo de contratações/saídas, vagas por área, reviews | Sinais antecedentes: êxodo de engenheiros, contratação agressiva em nova linha de negócio, queda de moral pré-resultado |
 | **Macro** | Juros, câmbio, commodities, calendário econômico | Regime de mercado (risk-on/risk-off) que condiciona o apetite do comitê |
 | **Concorrência** | Mesmos dados, organizados por setor | Mapa competitivo: quem ganha/perde share, movimentos que afetam pares |
+| **Planejamento Estratégico** | Planos estratégicos divulgados, guidance de longo prazo, M&A, alocação de capital (capex, recompras, dividendos), investor days | Avaliação da **qualidade da estratégia e da execução** de cada empresa: coerência plano×entrega (guidance cumprido?), disciplina de alocação de capital, vantagem competitiva sustentável (VRIO), e **análise de cenários** por ativo (o que quebra ou confirma a tese em cada cenário macro/setorial) |
 
 Cada saída é um **sinal versionado e auditável**: `{agente, ticker, score, confiança, evidências[], timestamp}`.
 
@@ -118,7 +120,7 @@ Cada saída é um **sinal versionado e auditável**: `{agente, ticker, score, co
 O **Agente Gestor (PM)** consolida os sinais em decisões:
 
 1. **Rodada de debate**: para os ativos com sinais fortes ou divergentes, o PM confronta os agentes (padrão multi-agente adversarial — um agente "advogado do diabo" tenta derrubar a tese).
-2. **Tese escrita**: toda decisão gera um documento — o que comprar/vender, por quê, quais evidências, qual o gatilho de saída, qual o risco que invalida a tese.
+2. **Tese escrita**: toda decisão gera um documento — o que comprar/vender, por quê, quais evidências, qual o gatilho de saída, qual o risco que invalida a tese. Os cenários do Agente de Planejamento Estratégico entram aqui: cada tese declara em quais cenários ela sobrevive e qual evento a invalida.
 3. **Score final** por ativo → lista-alvo de portfólio (pesos desejados).
 4. O delta entre portfólio-alvo e posição atual vira **propostas de ordem**.
 
