@@ -30,7 +30,7 @@ flowchart LR
 ### Sprint 1–2 — Fundação de dados
 - Repositório, CI/CD (lint, testes, build), infraestrutura como código (Terraform), ambientes `dev` e `prod` separados desde o dia 1.
 - Modelo de dados no PostgreSQL + migrações versionadas (Alembic).
-- Coletores: market data EOD (fonte gratuita) + fatos relevantes CVM/EDGAR + 2–3 feeds RSS de notícias.
+- Coletores: market data EOD (fonte gratuita) + fatos relevantes CVM/EDGAR + 2–3 feeds RSS de notícias + **portais oficiais de governo** (federal: gov.br/Agência Brasil/DOU; estadual e municipal conforme sede e operações de cada companhia do universo, cadastradas no onboarding).
 - **Backfill histórico de 10 anos** (`PROJETO...md` §4.2) para o universo inicial: todos os trimestres (ITR/DFP da CVM ou 10-Q/10-K do EDGAR), histórico completo de fatos relevantes com timestamp original e preços ajustados — com check automático de completude (≥ 40 trimestres sem lacuna) que marca cada ativo como `histórico_completo`.
 - **Backfill econômico** (`PROJETO...md` §4.3): camada global com **30 anos** (FMI, Banco Mundial, OCDE, BIS, FRED) carregada no bootstrap; painéis setoriais específicos com **10 anos** carregados junto com cada Dossiê Setorial (BCB/SGS, IBGE, ONS, CONAB, ANP...), com pesos setorial > doméstico > global registrados por série.
 - Pipeline de normalização → `SignalDocument`, entity linking com dicionário inicial de ~30 tickers, dedup.

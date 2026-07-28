@@ -87,10 +87,12 @@ flowchart TB
 | Glassdoor | Nota da empresa, tendência de reviews, sentimento sobre liderança | Provedores de dados agregados (mesma restrição acima) |
 | Dados alternativos | X/Twitter, Reddit, Google Trends, downloads de apps | APIs oficiais e provedores especializados |
 | Dados econômicos (2 camadas, §4.3) | Setoriais específicos por área de atuação (peso maior, 10 anos) + economia mundial como um todo (peso menor, **30 anos**) | BCB/SGS, IBGE, ONS/ANEEL, CONAB, ANP; FMI, Banco Mundial, OCDE, BIS, FRED |
+| **Portais oficiais de governo** (3 esferas) | Notícias e atos oficiais: federal (gov.br, Agência Brasil, DOU), **estadual e municipal — especialmente das localidades onde cada companhia é sediada e tem operações relevantes**: diários oficiais, portais de secretarias (fazenda, meio ambiente, infraestrutura), agências estaduais | Portais públicos e diários oficiais (gratuitos, com feed/raspagem permitida por serem dados públicos governamentais) |
 
 ### 3.2 Pipeline de ingestão
 
 1. **Coletores agendados** (cron por fonte, com frequência própria: intraday para preço, diário para notícias/reviews, semanal para LinkedIn/Glassdoor) — e, no onboarding de cada ticker, o **backfill obrigatório de 10 anos** (trimestres + fatos relevantes + preços, §4.2).
+   - **Monitoramento governamental georreferenciado**: no onboarding, cada companhia é cadastrada com sede (município/UF) e localidades de operações relevantes (plantas, minas, CDs); o pipeline assina automaticamente os portais oficiais e diários das três esferas correspondentes — federal sempre, estadual e municipal conforme o mapa de presença da empresa. Sinais típicos: mudança tributária local (ICMS, ISS), licenciamento ambiental, licitações e concessões, incentivos fiscais, obras de infraestrutura que afetam a operação.
 2. **Normalização**: tudo vira um `SignalDocument` padrão — `{fonte, timestamp, tickers[], tipo, texto, metadados, url}`.
 3. **Entity linking**: NER + dicionário de empresas para mapear "a varejista de Cascavel" → ticker correto; um documento pode afetar vários tickers (empresa + concorrentes).
 4. **Deduplicação** por hash semântico (a mesma notícia replicada em 10 portais conta uma vez).
@@ -254,7 +256,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 
 ## 8. Modelo de dados (núcleo)
 
-- `assets` — tickers, setor, pares/concorrentes, metadados, vínculo ao dossiê setorial.
+- `assets` — tickers, setor, pares/concorrentes, metadados, vínculo ao dossiê setorial, **sede (município/UF) e localidades de operações relevantes** (mapa que dirige o monitoramento de portais oficiais estaduais/municipais).
 - `sector_dossiers` — dossiês setoriais versionados (conteúdo, bibliografia, estado de aprovação, validade) — pré-requisito de análise (§4.1).
 - `fundamentals_quarterly` — demonstrações trimestrais normalizadas por ativo (≥ 40 trimestres, §4.2), com check de completude.
 - `material_facts` — arquivo integral de fatos relevantes por ativo (≥ 10 anos, com timestamp original), vinculado aos `signal_documents`.
