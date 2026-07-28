@@ -89,7 +89,7 @@ flowchart TB
 
 ### 3.2 Pipeline de ingestão
 
-1. **Coletores agendados** (cron por fonte, com frequência própria: intraday para preço, diário para notícias/reviews, semanal para LinkedIn/Glassdoor).
+1. **Coletores agendados** (cron por fonte, com frequência própria: intraday para preço, diário para notícias/reviews, semanal para LinkedIn/Glassdoor) — e, no onboarding de cada ticker, o **backfill obrigatório de 8 anos** (trimestres + fatos relevantes + preços, §4.2).
 2. **Normalização**: tudo vira um `SignalDocument` padrão — `{fonte, timestamp, tickers[], tipo, texto, metadados, url}`.
 3. **Entity linking**: NER + dicionário de empresas para mapear "a varejista de Cascavel" → ticker correto; um documento pode afetar vários tickers (empresa + concorrentes).
 4. **Deduplicação** por hash semântico (a mesma notícia replicada em 10 portais conta uma vez).
@@ -133,6 +133,24 @@ Cada saída é um **sinal versionado e auditável**: `{agente, ticker, score, co
 - **Motor de risco**: nenhuma ordem é aprovada para ativo sem dossiê setorial válido (invariante testada como as demais).
 
 Efeito prático: expandir o universo de ativos tem custo deliberado — cobrir um setor novo exige primeiro construir e aprovar a base teórica dele. É lentidão intencional: o sistema nunca opera o que não entende.
+
+### 4.2 Pré-requisito de profundidade histórica: mínimo de 8 anos (bloqueante)
+
+Segundo pré-requisito de entrada no universo analisável: **base histórica mínima de 8 anos por empresa**, com três componentes obrigatórios e completos:
+
+| Componente | Conteúdo exigido | Fonte primária |
+|---|---|---|
+| **Demonstrações trimestrais** | **Todos os trimestres** dos últimos 8 anos (≥ 32 trimestres: balanço, DRE, fluxo de caixa, notas) — sem lacunas | CVM (ITR/DFP via dados abertos) para B3; SEC EDGAR (10-Q/10-K) para EUA |
+| **Fatos relevantes** | **Histórico completo** de fatos relevantes e comunicados ao mercado dos últimos 8 anos, com data/hora original | CVM (sistema IPE/RAD Empresas.NET); SEC (8-K) |
+| **Dados de mercado** | Preço e volume diários (ajustados por proventos) cobrindo o mesmo período | B3/provedores; APIs de market data |
+
+**Por que 8 anos:** cobre ao menos um ciclo econômico completo (no Brasil: recessão 2015–16, pandemia 2020, ciclos de juros), dá amostra suficiente para o walk-forward do backtest (calibração + validação fora da amostra), e permite ao agente comparar o comportamento da empresa em crise vs. bonança — inclusive a coerência histórica entre o que a empresa anunciou em fatos relevantes e o que entregou nos trimestres seguintes (insumo direto do Agente de Planejamento Estratégico).
+
+**Enforcement (mesmo padrão do §4.1):**
+- **Carga retroativa (backfill)** é etapa obrigatória do onboarding de cada ticker; um check automático de completude (≥ 32 trimestres sem lacuna + série de fatos relevantes íntegra + preços contínuos) muda o estado do ativo para `histórico_completo`.
+- Agentes não emitem sinal e o motor de risco não aprova ordem para ativo sem `histórico_completo` (invariante testada).
+- **IPOs e empresas com menos de 8 anos de listagem ficam fora do universo por padrão.** Exceção somente por aprovação humana explícita e documentada, com limite de posição reduzido — e o motivo registrado na tese.
+- A janela é **móvel**: a cada trimestre, o pipeline incorpora o novo ITR e os novos fatos relevantes; falha de atualização por 2 trimestres consecutivos rebaixa o ativo para fora do universo até regularizar.
 
 ---
 
@@ -211,6 +229,8 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 
 - `assets` — tickers, setor, pares/concorrentes, metadados, vínculo ao dossiê setorial.
 - `sector_dossiers` — dossiês setoriais versionados (conteúdo, bibliografia, estado de aprovação, validade) — pré-requisito de análise (§4.1).
+- `fundamentals_quarterly` — demonstrações trimestrais normalizadas por ativo (≥ 32 trimestres, §4.2), com check de completude.
+- `material_facts` — arquivo integral de fatos relevantes por ativo (≥ 8 anos, com timestamp original), vinculado aos `signal_documents`.
 - `signal_documents` — todo conteúdo ingerido, normalizado, com vínculo a ativos.
 - `signals` — saídas dos agentes (score, confiança, evidências → documentos).
 - `theses` — teses de investimento versionadas (aberta, atualizada, invalidada, encerrada).
