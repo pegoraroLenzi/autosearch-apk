@@ -116,6 +116,7 @@ O cânone acadêmico da disciplina, na ordem histórica — cada obra vira um "i
 | Organismos internacionais | BIS/Basileia (bancos), IEA (energia), USGS (mineração), FAO/USDA (agro), OMS (saúde) | **Preferencial** |
 | Estatísticas oficiais | IBGE, séries do BCB (SGS), FRED, Eurostat | **Preferencial** |
 | Portais e diários oficiais de governo (federal, estadual, municipal) | gov.br, Agência Brasil, DOU, diários oficiais dos estados/municípios das sedes e operações das companhias | **Preferencial** — atos oficiais são fonte primária (tributos, licenças, concessões) |
+| Tecnologia e inovação (radar de disrupção) | Bases de patentes (INPI, USPTO, WIPO), dados de funding (Crunchbase), literatura acadêmica aplicada; imprensa tech como secundária | Aceitável com hierarquia: patente e funding são fatos verificáveis; "relatório de tendências" sem metodologia é hype — excluído (§9) |
 | Dados da economia mundial (camada global do §4.3 do projeto) | FMI (World Economic Outlook), Banco Mundial, OCDE, BIS | **Preferencial** — peso menor que o setorial, nunca zero; base histórica de 30 anos (convenção para dados globais) |
 | Literatura acadêmica do setor | Journals de economia/finança aplicada; handbooks setoriais (ex.: *Handbook of Banking*, Oxford) | **Preferencial** |
 | Associações setoriais com metodologia pública | ABRAINC/CBIC (construção), ANFAVEA (autos), ABIQUIM (química), FEBRABAN (bancos) | Aceitável — checar conflito de interesse (associação defende o setor) |
