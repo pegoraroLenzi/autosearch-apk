@@ -297,6 +297,7 @@ Regras da estrutura temporal:
 3. **Promoção e rebaixamento entre livros são decisões explícitas:** uma posição de médio prazo que se prova pode ser promovida ao núcleo (nova tese, novo gatilho de invalidação); uma posição de núcleo cuja tese enfraquece é rebaixada antes de ser vendida — cada movimento vira registro auditável.
 4. **Cadência de revisão é mínima obrigatória**, não máxima: qualquer evento com relevância alta (classificador §3.2) reabre a análise do livro afetado imediatamente.
 5. **Atribuição de performance por livro** (além de por agente): o fundo aprende em qual horizonte tem vantagem real — e realoca orçamento de risco para onde o edge está comprovado.
+6. **Re-underwriting cego do núcleo (Ponto 10 da revisão, decidido — semestral):** a cada 6 meses, cada posição do livro de retenção é reavaliada por um agente que **não sabe que a empresa está na carteira** e não vê a tese antiga — reconstrói a análise do zero com os dados atuais (mesma ficha de consistência, mesmo dossiê setorial). Se a tese cega não justificar a posição, ela vai ao comitê com **ônus da prova invertido**: quem quer manter precisa provar. É o antídoto estrutural ao viés de dotação ("está na carteira, logo merece estar"); o ciclo coincide com a revisão semestral de fontes (§10 item 5).
 
 ### 5.2 Divisão de papéis: o debate gera evidência, a estatística decide o tamanho
 
@@ -327,6 +328,14 @@ Camada determinística (não-LLM, regras duras) que valida cada proposta:
 - Alçadas: ordens acima de um valor exigem aprovação humana (notificação push/e-mail com a tese anexa).
 
 ---
+
+### 5.3 Governança da aprovação humana: SLA, ausência e orçamento de atenção (Ponto 11, decidido)
+
+O gestor humano é deliberadamente o ponto de controle — mas não pode ser ponto único de falha nem virar carimbo automático. Três regras:
+
+1. **SLA de 48h úteis com default conservador:** todo item que exige aprovação humana (tese nova, exceção, promoção ao núcleo) espera até 48h úteis; sem resposta, **não executa** — a oportunidade expira e fica registrada com o motivo. Nada entra na carteira por omissão; só por decisão. **Reduções de risco, stops e gatilhos de saída já aprovados nas teses nunca esperam aprovação.**
+2. **Modo preservação em indisponibilidade:** detectada a ausência do gestor (sem interação por N dias, ou avisada), o sistema executa apenas o que defende a carteira — stops, reduções de risco, gatilhos de saída aprovados e o rebalance da camada sistemática — e **não abre nem aumenta posição alguma**. A carteira fica defendida, nunca expandida; tudo que expirar no período fica no registro para revisão na volta.
+3. **Orçamento de atenção — máximo 5 itens de decisão por dia:** o relatório diário prioriza por impacto × urgência e apresenta no máximo 5 itens que exigem decisão; o resto fica em fila visível com posição e envelhecimento. Aprovação no piloto automático é pior do que não aprovar — o limite protege a qualidade da atenção, e força o sistema a priorizar de verdade.
 
 ## 6. Execução — API de compra e venda
 

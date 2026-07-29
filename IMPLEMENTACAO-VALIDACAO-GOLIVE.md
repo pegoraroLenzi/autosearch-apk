@@ -97,6 +97,8 @@ Para *qualquer* sequência de propostas e *qualquer* estado de portfólio:
 - Nenhuma posição resultante excede o limite por ativo/setor.
 - Com circuit breaker ativo, nenhuma ordem aumenta exposição.
 - Nenhuma sequência de ordens leva as exposições líquidas por fator acima dos limites; com perda simulada de stress acima do drawdown do mandato, o motor entra (e permanece) em modo só-redução até liberação humana.
+- Item de aprovação humana expirado (SLA de 48h, §5.3 do projeto) jamais resulta em ordem executada — expiração é sempre não-execução registrada.
+- Em modo preservação (gestor indisponível), nenhum caminho de código emite ordem que abra ou aumente posição; stops e reduções continuam funcionando.
 - Toda ordem aprovada tem stop definido.
 - Toda ordem pertence a um livro/horizonte (§5.1 do projeto) e respeita o orçamento de risco daquele livro; posição sem livro é rejeitada.
 - Nenhuma ordem é aprovada para ativo cujo setor não tem Dossiê Setorial em estado `aprovado` e dentro da validade.
@@ -196,6 +198,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] Camada de calibração e meta-modelo em produção com monitoramento de Brier ativo; regra de conflito assimétrica (reduzir/vetar, nunca aumentar) implementada e testada no OMS.
 - [ ] Modelo de fatores ativo (betas atualizados, limites líquidos configurados) e stress test diário rodando no relatório com o gatilho de só-redução testado em drill.
 - [ ] Papéis adversariais rodando em segunda família de LLM (com evals aprovados nas duas) e verificador determinístico de tese ativo e bloqueante.
+- [ ] Governança de aprovação humana ativa (§5.3 do projeto): SLA de 48h com expiração conservadora testada, modo preservação com drill de ausência executado, fila de atenção com teto de 5 itens/dia no painel; re-underwriting cego semestral do núcleo agendado.
 - [ ] 100% dos ativos do universo com Dossiê Setorial `aprovado`, dentro da validade e com aprovação humana registrada.
 - [ ] 100% dos ativos do universo com **Ficha de Consistência de Dados** gerada e atualizada (incluindo coleta pré-IPO para listagens recentes), com a janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente e refletido na ficha).
 - [ ] Base econômica das duas camadas (§4.3) carregada: painéis setoriais de todos os dossiês aprovados com 10 anos + série global completa com **30 anos**, com check de frescor ativo (série global vencida → Agente Macro degrada para "regime indefinido").
@@ -225,7 +228,7 @@ O go-live inclui as condições de **descer a rampa**, decididas antes, a frio:
 | 2+ incidentes críticos em 30 dias | Volta para paper trading |
 | Performance real fora da banda do backtest por 2 meses | Revisão completa da estratégia com capital reduzido |
 
-E o ciclo de melhoria contínua: atribuição de performance **por agente, por livro e por fonte de dado** (mensal) decide onde investir esforço — agente que não agrega sinal mensurável é simplificado ou removido; **fonte que não paga seu custo total por 2 ciclos semestrais consecutivos é desligada, com notificação ao gestor do ocorrido e do porquê** (arquivo point-in-time preservado); e o **TCO por empresa coberta** sai no relatório mensal contra o orçamento-teto do gestor.
+E o ciclo de melhoria contínua: **re-underwriting cego semestral do núcleo** (agente sem conhecimento da carteira reconstrói cada tese do zero; divergência vai ao comitê com ônus da prova invertido — §5.1 regra 6 do projeto); atribuição de performance **por agente, por livro e por fonte de dado** (mensal) decide onde investir esforço — agente que não agrega sinal mensurável é simplificado ou removido; **fonte que não paga seu custo total por 2 ciclos semestrais consecutivos é desligada, com notificação ao gestor do ocorrido e do porquê** (arquivo point-in-time preservado); e o **TCO por empresa coberta** sai no relatório mensal contra o orçamento-teto do gestor.
 
 ---
 
