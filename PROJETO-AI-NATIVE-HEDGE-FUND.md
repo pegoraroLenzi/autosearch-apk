@@ -26,6 +26,21 @@ Um fundo de investimento **AI-native**: a inteligência artificial não é uma f
 
 ---
 
+### Diferencial competitivo: onde este modelo é melhor e inconfundível
+
+O diferencial não é nenhuma peça isolada — é a combinação de seis, aplicada a um mercado onde o adversário é fraco:
+
+1. **Profundidade de leitura humana em escala de máquina, onde ninguém lê.** Quants processam dados estruturados mas não *entendem* empresas; casas fundamentalistas entendem, mas cobrem 10–15 empresas por analista. Este sistema faz leitura fundamentalista — subjetiva, contextual, com 10 anos de histórico e pré-IPO — **todos os dias, para todas as empresas do universo, mais peers e fornecedores**, sobre fontes que quase ninguém explora (diários oficiais, judicial por CNPJ, imprensa regional, diff de RI). No small/mid cap da B3, com cobertura de sell-side rala ou nula, isso é jogar contra ninguém.
+2. **Subjetivo + objetivo com separação de poderes** (§5.2): quem entende o cenário não é quem dimensiona a posição. Fundamentalistas têm o subjetivo sem a disciplina estatística; quants, o inverso; os experimentos de "LLM traders" deixam o agente decidir e dimensionar de uma vez — o erro que esta arquitetura proíbe.
+3. **Caixa de vidro num campo de caixas-pretas**: toda ordem rastreia até tese, evidência com ID e janela temporal verificadas por código, e previsões falsificáveis pré-registradas (§10). O track record é auditável linha a linha e a aprendizagem é atribuível — sabemos qual fonte paga e qual morre.
+4. **Disciplina institucional sem instituição**: re-underwriting cego, heterogeneidade de modelos no debate, modo preservação, SLA com default conservador, critério de morte de fontes — controles de fundo grande codificados em software que uma pessoa opera. O processo *é* o sistema.
+5. **Estrutura temporal explícita** (§5.1): seis livros com perguntas e orçamentos próprios; a mesma empresa pode ter posições diferentes em horizontes diferentes sem contradição.
+6. **O fosso que cresce sozinho — o arquivo point-in-time** (§3.2 item 6): desde o dia 1, arquivamos com timestamp fontes que ninguém no mercado arquiva. Em poucos anos, será o único histórico backtestável dessas fontes em existência; não está à venda e não pode ser capturado retroativamente — o único diferencial que fica *mais* inimitável a cada dia de operação.
+
+**Onde não somos melhores (honestidade de mandato):** não competimos em velocidade de execução; a camada sistemática é beta de fatores commodity (está lá por breadth, não por edge); em large caps com cobertura densa o diferencial informacional encolhe. O território inconfundível é o meio negligenciado da B3, lido com profundidade de analista e disciplina de quant.
+
+**A identidade numa frase:** um analista fundamentalista incansável, com memória perfeita de 10 anos, que lê diariamente o que ninguém lê sobre cada empresa — e que é proibido, por arquitetura, de decidir tamanho de posição por convicção em vez de estatística calibrada.
+
 ## 2. Arquitetura macro
 
 ```mermaid
