@@ -55,6 +55,8 @@ flowchart LR
 ### Sprint 6–7 — Comitê, decisão e motor de risco
 - Agente Técnico/Quant e Agente Macro.
 - Agente PM: debate adversarial e tese escrita versionada (geração de evidência — o PM não dimensiona posição, ver §5.2 do projeto).
+- **Heterogeneidade de modelos** (Ponto 8): refutador e ≥1 verificador em família de LLM diferente do proponente — segundo provedor integrado, com evals rodando nas duas famílias.
+- **Verificador determinístico de tese** (Ponto 8): checklist em código puro (números×banco, evidências×janela temporal, contradição com posições vivas, ficha anexada), bloqueante — tese reprovada não segue ao meta-modelo; coberto por testes unitários como o motor de risco.
 - **Camada de calibração + meta-modelo** (`PROJETO...md` §5.2): regressão isotônica, Brier/curvas por agente e setor, shrinkage; meta-modelo em cold start (pesos iguais + encolhimento), com verificação de que as features representam os sinais qualitativos das bases (requisito de mandato).
 - **Motor de risco como biblioteca pura e determinística** (sem LLM, sem I/O), 100% testável.
 - **Modelo de risco de fatores + stress diário** (Ponto 5): betas por ativo, limites sobre exposições líquidas por fator, stress contra cenários históricos com gatilho de só-redução.
@@ -193,6 +195,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] Limites de risco e alçadas revisados e assinados pelo gestor humano.
 - [ ] Camada de calibração e meta-modelo em produção com monitoramento de Brier ativo; regra de conflito assimétrica (reduzir/vetar, nunca aumentar) implementada e testada no OMS.
 - [ ] Modelo de fatores ativo (betas atualizados, limites líquidos configurados) e stress test diário rodando no relatório com o gatilho de só-redução testado em drill.
+- [ ] Papéis adversariais rodando em segunda família de LLM (com evals aprovados nas duas) e verificador determinístico de tese ativo e bloqueante.
 - [ ] 100% dos ativos do universo com Dossiê Setorial `aprovado`, dentro da validade e com aprovação humana registrada.
 - [ ] 100% dos ativos do universo com **Ficha de Consistência de Dados** gerada e atualizada (incluindo coleta pré-IPO para listagens recentes), com a janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente e refletido na ficha).
 - [ ] Base econômica das duas camadas (§4.3) carregada: painéis setoriais de todos os dossiês aprovados com 10 anos + série global completa com **30 anos**, com check de frescor ativo (série global vencida → Agente Macro degrada para "regime indefinido").
