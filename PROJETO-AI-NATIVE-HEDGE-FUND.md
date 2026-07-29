@@ -490,16 +490,37 @@ Após 6 meses de paper trading com métricas aceitáveis: capital próprio peque
 
 ---
 
-## 14. Principais riscos do projeto
+## 14. Principais riscos e fraquezas do projeto
+
+### 14.1 Fraquezas estruturais (diagnóstico honesto)
+
+O espelho da seção de diferenciais (§1): no que somos fracos, das mais graves para as menores.
+
+1. **Bus factor 1 — o gestor é o sistema.** Gestor, desenvolvedor, operador e aprovador são a mesma pessoa. O modo preservação (§5.3) cobre ausências curtas; não cobre incapacidade longa nem erro conceitual do próprio gestor — os verificadores adversariais pegam erros *dentro* do sistema, não erros *sobre* o sistema.
+2. **O edge central é hipótese não comprovada — e é a parte menos testável.** A parte diferenciada do fundo (fontes negligenciadas → alpha) é exatamente a que o backtest não valida (sem point-in-time histórico); o Gate 1 valida a parte commodity. O que nos torna únicos só se prova em produção, devagar, via pré-registro (§10 item 2).
+3. **Cérebro alugado.** LLMs de terceiros: preços mudam, modelos são descontinuados, e cada troca de versão quebra silenciosamente a calibração — o Brier histórico de um agente foi medido com um modelo que pode não existir mais. Evals mitigam; recalibrar leva meses de amostras novas.
+4. **Cold start estatístico longo.** Calibração, meta-modelo e atribuição por fonte precisam de amostras que só o tempo dá: nos primeiros 1–2 anos o sistema decide com shrinkage forte, quase pesos iguais. Nossos diferenciais mais fortes (arquivo, track record) são os que demoram mais para existir.
+5. **Lentidão estrutural e defesa limitada.** Ciclo EOD: evento de manhã vira ordem no fim do dia. Long-only por mandato: em bear market a única defesa é caixa — o sistema só pode perder menos, nunca ganhar com a queda.
+6. **O território do edge é o território da iliquidez.** Small caps negligenciadas têm book raso: slippage pode comer o alpha informacional, capacidade da estratégia é limitada, e o custo de transação estimado é a hipótese mais frágil do backtest.
+7. **Dados brasileiros são um pântano.** Cobertura parcial do Querido Diário, atrasos e segredo de justiça no DataJud, inconsistências no XBRL da CVM, homônimos no entity linking — 60% do esforço está na ingestão porque é onde os erros silenciosos nascem, e erro silencioso de dado vira análise confiante e errada.
+8. **Custo fixo alto para o tamanho.** Licenças + tokens + infra são quase fixos por empresa; com PL pequeno o TCO pode comer pontos de retorno ao ano (por isso o teto mensal do §12). Universo contido por custo limita o breadth dos livros profundos.
+9. **A arquitetura é copiável.** Cinco dos seis diferenciais são ideias replicáveis; só o arquivo point-in-time e o track record auditado são fossos reais — e ambos começam em zero.
+
+**Síntese:** os pontos fortes amadurecem com o tempo (arquivo, calibração, track record); as fraquezas são máximas no início (cold start, custo relativo, edge não provado, fosso raso) — sustentadas por uma única pessoa. A estratégia é uma aposta de que atravessamos o período em que somos fracos até o período em que somos fortes; os gates, o paper de 6 meses e o capital simbólico existem para cruzar esse vale sem perder dinheiro de verdade.
+
+### 14.2 Riscos operacionais e mitigações
 
 | Risco | Mitigação |
 |---|---|
-| Alucinação do LLM em análise financeira | Saída estruturada com evidências obrigatórias; motor de risco determinístico com poder de veto; debate adversarial |
+| Alucinação do LLM em análise financeira | Saída estruturada com evidências obrigatórias; verificador determinístico por tese (§5.2); motor de risco com poder de veto; debate adversarial em famílias de modelo distintas |
 | Look-ahead bias no backtest | Corte temporal rígido nos dados; validação só com paper trading em tempo real |
+| Troca/deprecação de modelo LLM quebra a calibração | Evals congelados por versão; recalibração monitorada por Brier; shrinkage automático enquanto a amostra do modelo novo é pequena |
 | Custo/indisponibilidade de dados de LinkedIn/Glassdoor | Tratar como sinal complementar (Fase 3), nunca como dependência do núcleo |
 | Overtrading / custos de transação | Limite de giro mensal no motor de risco; decisões diárias, não intraday, como padrão |
+| Slippage real acima do estimado em small caps | Piloto com capital simbólico mede slippage real e realimenta o backtest (Gate 3); limites de participação no volume diário |
 | Risco regulatório (gestão de terceiros) | Operar apenas capital próprio até haver estrutura CVM |
 | Falha de execução (API da corretora fora) | OMS com reconciliação, circuit breaker e kill switch manual |
+| Indisponibilidade do gestor | Modo preservação (§5.3): defende a carteira, nunca a expande |
 
 ---
 
