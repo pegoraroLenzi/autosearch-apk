@@ -54,7 +54,7 @@ flowchart LR
 - Índice vetorial (pgvector) + memória por ativo.
 - Agente Fundamentalista e Agente de Sentimento com **saída estruturada validada por schema** (score, confiança, evidências com IDs de documentos reais).
 - Tabela `agent_runs` com custo, latência e prompt versionado.
-- **Mecanismo de pré-registro** (`predictions`, §4.5): todo sinal relevante grava previsão falsificável com prazo desde o primeiro sinal emitido; apuração automática no vencimento.
+- **Mecanismo de pré-registro** (`predictions`, §4.4): todo sinal relevante grava previsão falsificável com prazo desde o primeiro sinal emitido; apuração automática no vencimento.
 - **Modo sombra desde o primeiro sinal:** os agentes rodam diariamente em produção-sombra (sem carteira, sem ordens) com pré-registro real de previsões — ao chegar no Gate 2, haverá meses extras de track record prospectivo e amostras de calibração acumuladas durante a própria construção.
 - **Entregável**: sinais diários auditáveis para o universo inicial; primeiro relatório diário com análise.
 
@@ -62,7 +62,8 @@ flowchart LR
 - Agente Técnico/Quant e Agente Macro.
 - Agente PM: debate adversarial e tese escrita versionada (geração de evidência — o PM não dimensiona posição, ver §5.2 do projeto).
 - **Heterogeneidade de modelos** (Ponto 8): refutador e ≥1 verificador em família de LLM diferente do proponente — segundo provedor integrado, com evals rodando nas duas famílias.
-- **Verificador determinístico de tese** (Ponto 8): checklist em código puro (números×banco, evidências×janela temporal, contradição com posições vivas, ficha anexada), bloqueante — tese reprovada não segue ao meta-modelo; coberto por testes unitários como o motor de risco.
+- **Verificador determinístico de tese** (Ponto 8): checklist em código puro (números×banco, evidências×janela temporal, contradição com posições vivas, ficha anexada, **campos obrigatórios da tese: percepção variante, catalisador com prazo, assimetria/hurdle de CDI, faixa de preço**), bloqueante — tese reprovada não segue ao meta-modelo; coberto por testes unitários como o motor de risco.
+- **Biblioteca de Casos + autópsia** (§5.4 do projeto): mecanismo de autópsia obrigatória no encerramento de tese (causa classificada: tese/timing/tamanho/dado/azar), caso rotulado em `case_library` com indexação semântica e recuperação de precedentes no contexto dos agentes.
 - **Camada de calibração + meta-modelo** (`PROJETO...md` §5.2): regressão isotônica, Brier/curvas por agente e setor, shrinkage; meta-modelo em cold start (pesos iguais + encolhimento), com verificação de que as features representam os sinais qualitativos das bases (requisito de mandato).
 - **Motor de risco como biblioteca pura e determinística** (sem LLM, sem I/O), 100% testável.
 - **Modelo de risco de fatores + stress diário** (Ponto 5): betas por ativo, limites sobre exposições líquidas por fator, stress contra cenários históricos com gatilho de só-redução.
@@ -72,6 +73,7 @@ flowchart LR
 ### Sprint 8 — OMS e adaptador de corretora (paper)
 - `BrokerAdapter` com implementação Alpaca **paper** + implementação `FakeBroker` (simulador local para testes).
 - OMS: estado de ordens, fills parciais, reconciliação diária, kill switch manual.
+- **Execução paciente** (§6.4 do projeto): somente ordens limitadas dentro da faixa de preço da tese, participação máxima no volume do pregão, expiração registrada quando o preço foge da faixa — nunca perseguir.
 - **Entregável**: ciclo completo rodando em paper trading, ponta a ponta.
 
 ### Sprint 9–10 — Backtest, camada sistemática e observabilidade
@@ -111,6 +113,7 @@ Para *qualquer* sequência de propostas e *qualquer* estado de portfólio:
 - Nenhuma ordem é aprovada para ativo cujo setor não tem Dossiê Setorial em estado `aprovado` e dentro da validade.
 - Toda ordem referencia tese com **Ficha de Consistência de Dados** anexada e vigente (§4.2 — o histórico não bloqueia, mas toda decisão registra com que dados foi tomada).
 - Ordem com tamanho > X% do volume médio diário nunca é aprovada.
+- Nenhuma ordem a mercado no caminho normal (exceção única: stops de proteção); toda ordem de entrada é limitada e dentro da faixa de preço da tese vigente (§6.4 do projeto).
 - O motor é determinístico: mesma entrada → mesma saída, sempre.
 
 ---
@@ -131,7 +134,7 @@ LLMs não se validam com teste unitário. Cada agente tem uma **suíte de evals*
 
 ### 4.2 Backtest (Gate 1)
 
-- **Escopo honesto (Ponto 4 da revisão, decidido):** o backtest cobre apenas fontes com point-in-time real (preços, fundamentos CVM, fatos relevantes, sentimento licenciado). As fontes sem histórico (imprensa regional, diários, reviews, fornecedores) ficam de fora do Gate 1 e são validadas prospectivamente (pré-registro, §4.5) — o Gate 2 estendido carrega esse peso.
+- **Escopo honesto (Ponto 4 da revisão, decidido):** o backtest cobre apenas fontes com point-in-time real (preços, fundamentos CVM, fatos relevantes, sentimento licenciado). As fontes sem histórico (imprensa regional, diários, reviews, fornecedores) ficam de fora do Gate 1 e são validadas prospectivamente (pré-registro, §4.4) — o Gate 2 estendido carrega esse peso.
 - **Metodologia walk-forward**: nunca otimizar e medir no mesmo período. Ex.: calibrar em 2019–2022, validar em 2023–2025, em janelas rolantes.
 - **Proteções contra vieses**:
   - *Look-ahead*: corte temporal rígido — o replay só entrega documentos com timestamp ≤ dia simulado; prompts instruem o agente a ignorar conhecimento posterior, e o eval de fidelidade pega citações anacrônicas.
@@ -153,15 +156,15 @@ O backtest valida a lógica; o paper valida o **sistema vivo** (dados atrasam, A
   - Zero violação de limite de risco; zero ordem sem tese vinculada.
   - Reconciliação OMS×corretora batendo 100% (divergência = bug bloqueante).
   - Performance dentro da banda esperada pelo backtest (não precisa ganhar do mercado no período — precisa se comportar como previsto; desvio grande entre paper e backtest indica bias não tratado).
-  - **Track record prospectivo (§4.5) apurado nas 2 temporadas**: taxa de acerto e calibração (Brier) dos pré-registros dentro das metas por agente.
+  - **Track record prospectivo (§4.4) apurado nas 2 temporadas**: taxa de acerto e calibração (Brier) dos pré-registros dentro das metas por agente.
   - Custo de LLM por dia dentro do orçamento.
   - Todos os incidentes com causa-raiz documentada e corrigida.
 
-### 4.5 Validação prospectiva com pré-registro (contínua, começa no Sprint 3)
+### 4.4 Validação prospectiva com pré-registro (contínua, começa no Sprint 5 com o modo sombra)
 
 Para as fontes e sinais sem backtest possível: **todo sinal relevante grava, antes do desfecho, uma previsão falsificável com prazo** (tabela `predictions` — sinal de origem, previsão, prazo, desfecho). Regras: previsão registrada é imutável; apuração automática no vencimento; racionalização retroativa é impossível por construção. O track record prospectivo por agente/fonte/setor alimenta a camada de calibração (§5.2 do projeto) e é critério formal do Gate 2.
 
-### 4.4 Testes de resiliência e segurança
+### 4.5 Testes de resiliência e segurança
 
 **Caos (rodar em staging, com `FakeBroker`):**
 - API da corretora fora no meio da execução → ordens ficam em estado consistente, alerta disparado, nada duplicado ao religar.
@@ -235,7 +238,7 @@ O go-live inclui as condições de **descer a rampa**, decididas antes, a frio:
 | 2+ incidentes críticos em 30 dias | Volta para paper trading |
 | Performance real fora da banda do backtest por 2 meses | Revisão completa da estratégia com capital reduzido |
 
-E o ciclo de melhoria contínua: **re-underwriting cego semestral do núcleo** (agente sem conhecimento da carteira reconstrói cada tese do zero; divergência vai ao comitê com ônus da prova invertido — §5.1 regra 6 do projeto); atribuição de performance **por agente, por livro e por fonte de dado** (mensal) decide onde investir esforço — agente que não agrega sinal mensurável é simplificado ou removido; **fonte que não paga seu custo total por 2 ciclos semestrais consecutivos é desligada, com notificação ao gestor do ocorrido e do porquê** (arquivo point-in-time preservado); e o **TCO por empresa coberta** sai no relatório mensal contra o orçamento-teto do gestor.
+E o ciclo de melhoria contínua: **autópsia obrigatória de toda tese encerrada** alimentando a Biblioteca de Casos (§5.4 do projeto — o aprendizado narrativo que compõe com a calibração estatística); **re-underwriting cego semestral do núcleo** (agente sem conhecimento da carteira reconstrói cada tese do zero; divergência vai ao comitê com ônus da prova invertido — §5.1 regra 6 do projeto); atribuição de performance **por agente, por livro e por fonte de dado** (mensal) decide onde investir esforço — agente que não agrega sinal mensurável é simplificado ou removido; **fonte que não paga seu custo total por 2 ciclos semestrais consecutivos é desligada, com notificação ao gestor do ocorrido e do porquê** (arquivo point-in-time preservado); e o **TCO por empresa coberta** sai no relatório mensal contra o orçamento-teto do gestor.
 
 ---
 

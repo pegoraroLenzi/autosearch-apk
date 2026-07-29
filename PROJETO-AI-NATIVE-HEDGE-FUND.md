@@ -72,8 +72,10 @@ flowchart TB
     end
 
     subgraph DECISAO["4 · Comitê de investimento"]
-        PM[Agente Gestor PM<br/>debate, tese, score]
-        RISK[Motor de risco<br/>limites, sizing, VaR]
+        PM[Agente Gestor PM<br/>debate adversarial, tese]
+        VERIF[Verificador determinístico<br/>checklist em código puro]
+        META[Calibração + meta-modelo<br/>probabilidades, tamanho]
+        RISK[Motor de risco<br/>limites, fatores, stress, VaR]
     end
 
     subgraph EXEC["5 · Execução"]
@@ -85,7 +87,7 @@ flowchart TB
     NORM --> VEC
     LAKE --> INTEL
     VEC --> INTEL
-    INTEL --> PM --> RISK --> OMS --> BROKER
+    INTEL --> PM --> VERIF --> META --> RISK --> OMS --> BROKER
     BROKER -->|fills, posições| OMS
     OMS -->|feedback de performance| PM
 ```
@@ -290,9 +292,9 @@ Um agente **nunca** mistura bases específicas de empresas diferentes fora do pe
 
 ## 5. Comitê de investimento (decisão)
 
-### 5.1 Estrutura temporal: cinco livros de análise e carteira
+### 5.1 Estrutura temporal: seis livros de análise e carteira
 
-Análises e posições são **separadas e estruturadas por horizonte temporal**, em cinco livros. Cada livro tem pergunta própria, sinais dominantes, cadência de revisão e orçamento de risco — e uma tese pertence a exatamente um livro:
+Análises e posições são **separadas e estruturadas por horizonte temporal**, em seis livros (cinco de análise profunda + a camada sistemática). Cada livro tem pergunta própria, sinais dominantes, cadência de revisão e orçamento de risco — e uma tese pertence a exatamente um livro:
 
 | Livro | Janela | Pergunta que responde | Sinais dominantes | Cadência de revisão | Orçamento de risco indicativo* |
 |---|---|---|---|---|---|
@@ -322,14 +324,30 @@ Decisão de arquitetura (Ponto 2 da `REVISAO-CRITICA.md`, decidido pelo gestor):
 
 **Fluxo de decisão:**
 
-1. **Comitê (geração de evidência).** O **Agente Gestor (PM)** conduz a rodada de debate para ativos com sinais fortes ou divergentes (padrão adversarial — "advogado do diabo" tenta derrubar a tese) e produz a **tese escrita**: o que comprar/vender, por quê, evidências, gatilho de saída, risco que invalida, cenários do Planejamento Estratégico em que a tese sobrevive. A tese qualifica a decisão — mas não dimensiona a posição. Duas salvaguardas obrigatórias (Ponto 8 da revisão, decididas):
+1. **Comitê (geração de evidência).** O **Agente Gestor (PM)** conduz a rodada de debate para ativos com sinais fortes ou divergentes (padrão adversarial — "advogado do diabo" tenta derrubar a tese) e produz a **tese escrita**: o que comprar/vender, por quê, evidências, gatilho de saída, risco que invalida, cenários do Planejamento Estratégico em que a tese sobrevive. **Três campos obrigatórios** (melhoria decidida pelo gestor — separam análise de aposta):
+   - **Percepção variante:** *o que sabemos ou acreditamos que o consenso não sabe?* Para um fundo cujo edge é informacional, esta é a pergunta — tese que não a responde não tem edge, tem opinião.
+   - **Catalisador com prazo:** *que evento fará o preço convergir, e em que janela?* Estar certo cedo demais é estar errado — e paga aluguel de oportunidade.
+   - **Assimetria com hurdle:** *quanto ganho se certo × quanto perco se errado*, e o valor esperado deve superar **CDI + prêmio de risco + custos estimados** (o piso do mandato dá o hurdle de graça). Junto: a **faixa de preço da tese** — preço máximo de entrada (com margem de segurança), alvo e invalidação — que governa a execução (§6.4).
+   
+   A tese qualifica a decisão — mas não dimensiona a posição. Duas salvaguardas obrigatórias (Ponto 8 da revisão, decididas):
    - **Heterogeneidade de modelos nos papéis adversariais:** o refutador e ao menos um verificador rodam em **família de LLM diferente** da do proponente (ex.: proponente em Claude, refutador em outra família) — em ensembles, o ganho vem de diversidade de erros; cético da mesma família compra os mesmos vieses e o debate vira teatro.
-   - **Verificador determinístico não-LLM por tese:** antes da aprovação, um checklist em código puro confere: números citados batem com o banco? Evidências existem e estão na janela temporal correta? A tese contradiz alguma posição viva sem reconciliação? Ficha de consistência anexada? Roda em milissegundos, é imune a alucinação correlacionada, e **tese que falha no checklist não segue** para calibração/meta-modelo.
+   - **Verificador determinístico não-LLM por tese:** antes da aprovação, um checklist em código puro confere: números citados batem com o banco? Evidências existem e estão na janela temporal correta? A tese contradiz alguma posição viva sem reconciliação? Ficha de consistência anexada? **Os três campos obrigatórios (percepção variante, catalisador, assimetria/hurdle) e a faixa de preço estão presentes e coerentes?** Roda em milissegundos, é imune a alucinação correlacionada, e **tese que falha no checklist não segue** para calibração/meta-modelo.
 2. **Camada de calibração.** Os scores brutos de cada agente são mapeados para probabilidades por **regressão isotônica** ajustada nos resultados realizados, com **Brier score e curvas de confiabilidade monitorados por agente e por setor**. Agente sem histórico suficiente de calibração entra com peso encolhido (shrinkage) em direção a zero — score não calibrado nunca dimensiona posição em tamanho cheio.
 3. **Meta-modelo (decisão de tamanho).** Um modelo estatístico simples e auditável (regressão regularizada ou boosting raso, walk-forward) combina: **os scores calibrados de todos os agentes** — é por aqui que os dados além da matemática entram na decisão, por exigência do mandato: pessoas (Glassdoor/LinkedIn), judicial, fornecedores, planejamento estratégico, sentimento, concorrência, cada um encodado no sinal do seu agente — **+ features duras** (valuation, momentum, qualidade, liquidez) **+ features derivadas das bases** (fluxo de novas ações judiciais, delta de reviews, promessa×entrega). A saída é o score final por ativo → lista-alvo de portfólio (pesos desejados). *Condição de projeto: um meta-modelo que use apenas fatores de preço/fundamento viola o mandato — a representação dos sinais qualitativos nas features é requisito, verificado em revisão.*
 4. **Cold start (fase inicial, sem histórico de resultados):** o meta-modelo começa como **combinação de pesos iguais** dos scores calibrados (Dawes: modelos lineares "impróprios" já superam a síntese julgamental) com encolhimento conservador dos tamanhos; o treinamento de verdade acontece conforme paper trading e produção acumulam resultados — nunca sobre backtest contaminado por look-ahead paramétrico.
 5. **Regra de conflito (assimétrica, deliberada):** PM-LLM e gestor humano podem **reduzir ou vetar** qualquer posição proposta pelo meta-modelo, com justificativa registrada — mas **nunca aumentá-la nem criar posição que o modelo não sustente**. Julgamento é freio, não acelerador. Cada veto/redução vira dado: o sistema mede ao longo do tempo quem estava certo, o modelo ou o freio.
 6. O delta entre portfólio-alvo e posição atual vira **propostas de ordem** (que seguem para o motor de risco, como sempre).
+
+**Política de caixa (melhoria decidida pelo gestor):** caixa remunerado (CDI) é a **posição default** — o sistema **nunca é obrigado a operar**. Capital só sai do caixa quando uma tese supera o hurdle explícito (CDI + prêmio + custos). É o antídoto estrutural ao viés de atividade — o modo de falha natural de agentes LLM, que *sempre* encontram algo interessante todo dia; dias sem tese acima do hurdle são dias de caixa, sem constrangimento.
+
+### 5.4 Biblioteca de Casos: autópsia obrigatória e aprendizado composto (melhoria decidida pelo gestor)
+
+O sistema não deve apenas registrar erros e acertos — deve **aprender com eles em forma reutilizável**:
+
+- **Autópsia obrigatória:** toda tese encerrada — com lucro ou prejuízo — recebe autópsia estruturada: a causa do desfecho é classificada (**tese errada · timing errado · tamanho errado · dado faltante · azar/sorte**), com as evidências do diagnóstico. Acerto também tem autópsia: ganhar pelo motivo errado é erro não cobrado — e o sistema precisa saber.
+- **Caso rotulado:** cada autópsia vira um caso na `case_library` — setup (contexto, sinais, cenário) → decisão (tese, tamanho, preço) → desfecho → causa — indexado semanticamente.
+- **Consumo pelos agentes:** ao analisar um setup, os agentes recuperam os casos semelhantes da biblioteca ("já vimos esse filme, e terminou assim") — o precedente entra como evidência citável na nova tese. A biblioteca entra na montagem de contexto do §4.7 como módulo da base fixa metodológica.
+- **Efeito composto:** a calibração estatística (§5.2) aprende *em número*; a biblioteca aprende *em narrativa*. Juntas, fazem o fundo de 3 anos qualitativamente mais inteligente que o de 1 — é o mecanismo que converte tempo de operação em vantagem que não se compra.
 
 ### Motor de risco (veto e dimensionamento)
 
@@ -388,6 +406,15 @@ BrokerAdapter
 
 Registro próprio de todas as ordens e posições (não confiar só na corretora): estado de cada ordem, fills parciais, reconciliação diária com a corretora, e trilha de auditoria ligando **ordem → tese → sinais → documentos-fonte**.
 
+### 6.4 Disciplina de execução: paciência dentro da faixa da tese (melhoria decidida pelo gestor)
+
+Nosso território é small cap ilíquida — a execução é onde o alpha informacional morre se for apressada. Regras duras:
+
+- **A tese governa o preço:** toda ordem executa **somente por ordem limitada**, dentro da faixa de preço definida na tese (entrada máxima com margem de segurança, alvo, invalidação). **Ordem a mercado não existe** no caminho normal (exceção única: stops de proteção, que priorizam sair).
+- **Participação limitada:** ≤ X% do volume corrente do pregão (parâmetro do motor de risco, por liquidez do papel) — nunca somos o mercado.
+- **Paciência estrutural:** montar uma posição pode levar dias — a tese que não pode esperar 3 pregões para montar não é tese, é FOMO. O prazo do catalisador define a urgência aceitável.
+- **Nunca perseguir preço:** se o preço fugiu da faixa antes de completar a posição, a oportunidade **expira registrada** (com o quanto foi montado) — o comitê reavalia com a faixa nova se quiser; a execução jamais estica a faixa por conta própria.
+
 ---
 
 ## 7. Fluxo diário (linha do tempo)
@@ -399,7 +426,7 @@ Registro próprio de todas as ordens e posições (não confiar só na corretora
 | 06:30 | Agentes analistas rodam em paralelo e publicam sinais |
 | 07:30 | Comitê: PM consolida, debate os casos divergentes, escreve/atualiza teses |
 | 08:30 | Motor de risco valida propostas → fila de ordens do dia (e pedidos de aprovação humana, se houver) |
-| 10:00–17:00 | Execução com algoritmo simples (TWAP/limites); monitor intraday reage a fatos relevantes novos |
+| 10:00–17:00 | Execução paciente por ordens limitadas dentro da faixa de preço de cada tese (§6.4), com participação limitada no volume; monitor intraday reage a fatos relevantes novos e executa stops no disparo |
 | 18:00 | Reconciliação com a corretora; cálculo de P&L |
 | 18:30 | **Relatório diário**: posições e resultado **por livro/horizonte (§5.1)**, **exposições líquidas por fator e stress test contra os cenários históricos** (com status do gatilho), decisões do dia com teses, sinais novos, promoções/rebaixamentos entre livros — enviado ao gestor humano |
 
@@ -422,7 +449,8 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 - `econ_series` — séries econômicas das duas camadas do §4.3 (setoriais: 10 anos; globais: 30 anos), com fonte, frequência, peso e check de frescor.
 - `signal_documents` — todo conteúdo ingerido, normalizado, com vínculo a ativos.
 - `signals` — saídas dos agentes (score, confiança, evidências → documentos).
-- `theses` — teses de investimento versionadas (aberta, atualizada, invalidada, encerrada), cada uma vinculada a um **livro/horizonte** (§5.1), com histórico de promoções/rebaixamentos entre livros.
+- `theses` — teses de investimento versionadas (aberta, atualizada, invalidada, encerrada), cada uma vinculada a um **livro/horizonte** (§5.1), com os campos obrigatórios (§5.2: percepção variante, catalisador com prazo, assimetria/hurdle, faixa de preço) e histórico de promoções/rebaixamentos entre livros.
+- `case_library` — Biblioteca de Casos (§5.4): autópsia estruturada de cada tese encerrada (setup → decisão → desfecho → causa classificada), indexada semanticamente para consulta pelos agentes.
 - `orders` / `fills` / `positions` — OMS.
 - `portfolio_snapshots` — foto diária para P&L e atribuição de performance.
 - `agent_runs` — log de cada execução de agente (prompt, custo, latência) para auditoria e melhoria.
@@ -491,17 +519,19 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 
 ## 13. Roadmap em fases
 
-**Fase 1 — Fundação (4–6 semanas)**
-Pipeline de ingestão (market data + notícias + fatos relevantes CVM/EDGAR), modelo de dados, 2 agentes (Fundamentalista e Sentimento), relatório diário por e-mail. *Nenhuma ordem — só leitura e sinais.*
+> Alinhado ao plano de 10 sprints re-sequenciado (Ponto 7) da `IMPLEMENTACAO-VALIDACAO-GOLIVE.md` — dados primeiro.
 
-**Fase 2 — Comitê e simulação (4–6 semanas)**
-Agentes Técnico e Macro, Agente PM com teses escritas, motor de risco, backtest com replay histórico, **camada sistemática de fatores (§5.1, cobertura em dois níveis)**, início do paper trading via Alpaca.
+**Fase 1 — Dados e ingestão (Sprints 1–4, ~8 semanas)**
+Arquivo point-in-time ligado na semana 1 + arqueologia de fontes; taxonomia B3 + screening do universo; coletores (núcleo e completos), backfills exaustivos, golden set de entity linking, classificador de relevância, fichas de consistência, dossiês setoriais, peer sets, fornecedores. *Nenhum agente — o entregável é o relatório "burro" mas confiável.*
 
-**Fase 3 — Sinais alternativos (4 semanas)**
-Integração de provedor licenciado de dados LinkedIn/Glassdoor, Agente de Pessoas e de Concorrência, monitor intraday orientado a eventos.
+**Fase 2 — Agentes, comitê e validação (Sprints 5–10, ~12 semanas)**
+Agentes sobre dados limpos (em modo sombra com pré-registro desde o primeiro sinal), comitê com heterogeneidade de modelos e verificador determinístico, calibração + meta-modelo, motor de risco com fatores/stress/liquidez, OMS + execução paper, camada sistemática, backtest → **Gate 1**; depois, paper trading de 6 meses → **Gate 2**.
+
+**Fase 3 — Sinais alternativos (pós-Gate 2)**
+Integração de provedor licenciado de dados LinkedIn/Glassdoor, Agente de Pessoas e de Concorrência completo — desacoplado do go-live por ser o item mais caro e incerto.
 
 **Fase 4 — Capital real (contínuo)**
-Após 6 meses de paper trading com métricas aceitáveis: capital próprio pequeno, alçadas de aprovação humana ativas, painel do gestor, atribuição de performance por agente e ciclo de melhoria contínua.
+Piloto com capital simbólico → **Gate 3** → capital alvo: alçadas de aprovação ativas, painel do gestor, atribuição em três eixos, autópsias e ciclo de melhoria contínua.
 
 ---
 
