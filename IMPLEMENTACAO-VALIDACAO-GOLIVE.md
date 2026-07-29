@@ -54,6 +54,7 @@ flowchart LR
 - Agente PM: debate adversarial e tese escrita versionada (geração de evidência — o PM não dimensiona posição, ver §5.2 do projeto).
 - **Camada de calibração + meta-modelo** (`PROJETO...md` §5.2): mapeamento score→probabilidade por regressão isotônica, Brier/curvas de confiabilidade por agente e setor, shrinkage para agentes sem histórico; meta-modelo em modo cold start (pesos iguais + encolhimento de tamanhos), com verificação de que as features representam os sinais qualitativos das bases (requisito de mandato).
 - **Motor de risco como biblioteca pura e determinística** (sem LLM, sem I/O): entrada = proposta + estado do portfólio; saída = aprovada/ajustada/vetada + motivo. Essa pureza é o que o torna 100% testável.
+- **Modelo de risco de fatores + stress diário** (Ponto 5, decidido): estimação dos betas por ativo (mercado, DI, BRL, commodities, estilo), limites sobre exposições líquidas por fator no motor, e stress test diário contra cenários históricos fixos com gatilho automático de modo só-redução quando a perda simulada excede o drawdown do mandato.
 - **Entregável**: pipeline completo até "propostas de ordem" — sem executar nada.
 
 ### Sprint 6 — OMS e adaptador de corretora (paper)
@@ -90,6 +91,7 @@ flowchart LR
 Para *qualquer* sequência de propostas e *qualquer* estado de portfólio:
 - Nenhuma posição resultante excede o limite por ativo/setor.
 - Com circuit breaker ativo, nenhuma ordem aumenta exposição.
+- Nenhuma sequência de ordens leva as exposições líquidas por fator acima dos limites; com perda simulada de stress acima do drawdown do mandato, o motor entra (e permanece) em modo só-redução até liberação humana.
 - Toda ordem aprovada tem stop definido.
 - Toda ordem pertence a um livro/horizonte (§5.1 do projeto) e respeita o orçamento de risco daquele livro; posição sem livro é rejeitada.
 - Nenhuma ordem é aprovada para ativo cujo setor não tem Dossiê Setorial em estado `aprovado` e dentro da validade.
@@ -187,6 +189,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] Evals de todos os agentes passando na versão exata de prompt/modelo que vai ao ar (versões congeladas; mudança pós-go-live segue o mesmo processo de eval).
 - [ ] Limites de risco e alçadas revisados e assinados pelo gestor humano.
 - [ ] Camada de calibração e meta-modelo em produção com monitoramento de Brier ativo; regra de conflito assimétrica (reduzir/vetar, nunca aumentar) implementada e testada no OMS.
+- [ ] Modelo de fatores ativo (betas atualizados, limites líquidos configurados) e stress test diário rodando no relatório com o gatilho de só-redução testado em drill.
 - [ ] 100% dos ativos do universo com Dossiê Setorial `aprovado`, dentro da validade e com aprovação humana registrada.
 - [ ] 100% dos ativos do universo com **Ficha de Consistência de Dados** gerada e atualizada (incluindo coleta pré-IPO para listagens recentes), com a janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente e refletido na ficha).
 - [ ] Base econômica das duas camadas (§4.3) carregada: painéis setoriais de todos os dossiês aprovados com 10 anos + série global completa com **30 anos**, com check de frescor ativo (série global vencida → Agente Macro degrada para "regime indefinido").

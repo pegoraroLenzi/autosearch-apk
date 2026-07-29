@@ -319,6 +319,8 @@ Camada determinística (não-LLM, regras duras) que valida cada proposta:
 - Position sizing por volatilidade (risk parity simplificado / Kelly fracionado).
 - Stop-loss e take-profit obrigatórios por posição, definidos na tese.
 - VaR e drawdown máximo do portfólio; **circuit breaker**: acima do limite, o sistema só reduz risco, nunca aumenta.
+- **Modelo de risco de fatores (Ponto 5 da revisão, decidido):** cada posição é decomposta em exposições a fatores observáveis — mercado (Ibov), juros (DI), câmbio (BRL), commodities, valor/momentum/qualidade — por regressão das ações nos fatores (Barra simplificado, sem licença paga). O motor impõe **limites sobre as exposições líquidas do portfólio a cada fator**, além dos limites por nome/setor/livro: dez teses "independentes" que são a mesma aposta em juros ficam visíveis e limitadas. É a defesa estrutural contra o modo de falha do LTCM.
+- **Stress test diário com gatilho:** todo dia o portfólio é chocado contra cenários históricos fixos (2008, 2015–16 Brasil, 2020, choque de juros 2021–23 — construídos da base global de 30 anos do §4.3); o resultado sai no relatório diário. **Se a perda simulada em qualquer cenário exceder o drawdown máximo do mandato (20%), o motor entra em modo só-redução até revisão do gestor humano.**
 - Filtro de liquidez (não montar posição maior que X% do volume médio diário).
 - Alçadas: ordens acima de um valor exigem aprovação humana (notificação push/e-mail com a tese anexa).
 
@@ -367,7 +369,7 @@ Registro próprio de todas as ordens e posições (não confiar só na corretora
 | 08:30 | Motor de risco valida propostas → fila de ordens do dia (e pedidos de aprovação humana, se houver) |
 | 10:00–17:00 | Execução com algoritmo simples (TWAP/limites); monitor intraday reage a fatos relevantes novos |
 | 18:00 | Reconciliação com a corretora; cálculo de P&L |
-| 18:30 | **Relatório diário**: posições e resultado **por livro/horizonte (§5.1)**, decisões do dia com teses, sinais novos, promoções/rebaixamentos entre livros — enviado ao gestor humano |
+| 18:30 | **Relatório diário**: posições e resultado **por livro/horizonte (§5.1)**, **exposições líquidas por fator e stress test contra os cenários históricos** (com status do gatilho), decisões do dia com teses, sinais novos, promoções/rebaixamentos entre livros — enviado ao gestor humano |
 
 O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto impacto dispara reavaliação imediata do ativo, fora do ciclo.
 
@@ -391,6 +393,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 - `portfolio_snapshots` — foto diária para P&L e atribuição de performance.
 - `agent_runs` — log de cada execução de agente (prompt, custo, latência) para auditoria e melhoria.
 - `predictions` — pré-registros de previsões falsificáveis (§10 item 2): sinal de origem, previsão, prazo, desfecho apurado — o track record prospectivo por agente, fonte e setor.
+- `factor_exposures` — betas de cada ativo aos fatores do modelo de risco (§5, motor de risco), re-estimados periodicamente, e a série diária das exposições líquidas do portfólio com os resultados do stress.
 
 ---
 
