@@ -291,12 +291,18 @@ Regras da estrutura temporal:
 4. **Cadência de revisão é mínima obrigatória**, não máxima: qualquer evento com relevância alta (classificador §3.2) reabre a análise do livro afetado imediatamente.
 5. **Atribuição de performance por livro** (além de por agente): o fundo aprende em qual horizonte tem vantagem real — e realoca orçamento de risco para onde o edge está comprovado.
 
-O **Agente Gestor (PM)** consolida os sinais em decisões:
+### 5.2 Divisão de papéis: o debate gera evidência, a estatística decide o tamanho
 
-1. **Rodada de debate**: para os ativos com sinais fortes ou divergentes, o PM confronta os agentes (padrão multi-agente adversarial — um agente "advogado do diabo" tenta derrubar a tese).
-2. **Tese escrita**: toda decisão gera um documento — o que comprar/vender, por quê, quais evidências, qual o gatilho de saída, qual o risco que invalida a tese. Os cenários do Agente de Planejamento Estratégico entram aqui: cada tese declara em quais cenários ela sobrevive e qual evento a invalida.
-3. **Score final** por ativo → lista-alvo de portfólio (pesos desejados).
-4. O delta entre portfólio-alvo e posição atual vira **propostas de ordem**.
+Decisão de arquitetura (Ponto 2 da `REVISAO-CRITICA.md`, decidido pelo gestor): a agregação final **não é feita por síntese argumentativa** (agregação "clínica", que Meehl e Dawes mostram perder para a combinação mecânica) — é feita por um **meta-modelo estatístico**, com o comitê a montante e o julgamento a jusante apenas como freio.
+
+**Fluxo de decisão:**
+
+1. **Comitê (geração de evidência).** O **Agente Gestor (PM)** conduz a rodada de debate para ativos com sinais fortes ou divergentes (padrão adversarial — "advogado do diabo" tenta derrubar a tese) e produz a **tese escrita**: o que comprar/vender, por quê, evidências, gatilho de saída, risco que invalida, cenários do Planejamento Estratégico em que a tese sobrevive. A tese qualifica a decisão — mas não dimensiona a posição.
+2. **Camada de calibração.** Os scores brutos de cada agente são mapeados para probabilidades por **regressão isotônica** ajustada nos resultados realizados, com **Brier score e curvas de confiabilidade monitorados por agente e por setor**. Agente sem histórico suficiente de calibração entra com peso encolhido (shrinkage) em direção a zero — score não calibrado nunca dimensiona posição em tamanho cheio.
+3. **Meta-modelo (decisão de tamanho).** Um modelo estatístico simples e auditável (regressão regularizada ou boosting raso, walk-forward) combina: **os scores calibrados de todos os agentes** — é por aqui que os dados além da matemática entram na decisão, por exigência do mandato: pessoas (Glassdoor/LinkedIn), judicial, fornecedores, planejamento estratégico, sentimento, concorrência, cada um encodado no sinal do seu agente — **+ features duras** (valuation, momentum, qualidade, liquidez) **+ features derivadas das bases** (fluxo de novas ações judiciais, delta de reviews, promessa×entrega). A saída é o score final por ativo → lista-alvo de portfólio (pesos desejados). *Condição de projeto: um meta-modelo que use apenas fatores de preço/fundamento viola o mandato — a representação dos sinais qualitativos nas features é requisito, verificado em revisão.*
+4. **Cold start (fase inicial, sem histórico de resultados):** o meta-modelo começa como **combinação de pesos iguais** dos scores calibrados (Dawes: modelos lineares "impróprios" já superam a síntese julgamental) com encolhimento conservador dos tamanhos; o treinamento de verdade acontece conforme paper trading e produção acumulam resultados — nunca sobre backtest contaminado por look-ahead paramétrico.
+5. **Regra de conflito (assimétrica, deliberada):** PM-LLM e gestor humano podem **reduzir ou vetar** qualquer posição proposta pelo meta-modelo, com justificativa registrada — mas **nunca aumentá-la nem criar posição que o modelo não sustente**. Julgamento é freio, não acelerador. Cada veto/redução vira dado: o sistema mede ao longo do tempo quem estava certo, o modelo ou o freio.
+6. O delta entre portfólio-alvo e posição atual vira **propostas de ordem** (que seguem para o motor de risco, como sempre).
 
 ### Motor de risco (veto e dimensionamento)
 

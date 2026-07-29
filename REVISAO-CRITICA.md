@@ -1,5 +1,7 @@
 # Revisão Crítica — O que eu faria diferente
 
+> **Status de tratamento:** ponto 6 atendido (`MANDATO.md`); pontos 1–2 atendidos (§5.2 do projeto — meta-modelo com features qualitativas obrigatórias, cold start por pesos iguais + shrinkage, conflito assimétrico). Demais pontos pendentes de decisão, um a um.
+>
 > Crítica estruturada do projeto como está após todas as decisões acumuladas. Não são ajustes cosméticos: são pontos onde, na minha avaliação, o design atual contradiz a própria base teórica que adotamos, subestima um problema técnico, ou deixa uma decisão fundamental sem dono. Cada ponto traz o fundamento (teórico ou técnico), o problema concreto e o que eu mudaria. Ordenado por gravidade.
 
 ---

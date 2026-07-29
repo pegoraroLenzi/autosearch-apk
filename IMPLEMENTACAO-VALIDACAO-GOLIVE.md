@@ -49,7 +49,8 @@ flowchart LR
 
 ### Sprint 4–5 — Comitê e motor de risco
 - Agente Técnico/Quant e Agente Macro.
-- Agente PM: consolidação, debate adversarial, tese escrita versionada.
+- Agente PM: debate adversarial e tese escrita versionada (geração de evidência — o PM não dimensiona posição, ver §5.2 do projeto).
+- **Camada de calibração + meta-modelo** (`PROJETO...md` §5.2): mapeamento score→probabilidade por regressão isotônica, Brier/curvas de confiabilidade por agente e setor, shrinkage para agentes sem histórico; meta-modelo em modo cold start (pesos iguais + encolhimento de tamanhos), com verificação de que as features representam os sinais qualitativos das bases (requisito de mandato).
 - **Motor de risco como biblioteca pura e determinística** (sem LLM, sem I/O): entrada = proposta + estado do portfólio; saída = aprovada/ajustada/vetada + motivo. Essa pureza é o que o torna 100% testável.
 - **Entregável**: pipeline completo até "propostas de ordem" — sem executar nada.
 
@@ -102,6 +103,7 @@ Para *qualquer* sequência de propostas e *qualquer* estado de portfólio:
 LLMs não se validam com teste unitário. Cada agente tem uma **suíte de evals** própria:
 
 - **Golden set**: 50–100 casos históricos rotulados por humano (ex.: "este fato relevante era negativo para o ticker X"). O agente precisa de acurácia mínima acordada (ex.: ≥ 80% de direção correta) para o prompt/modelo ser promovido.
+- **Calibração (além da acurácia)**: Brier score e curva de confiabilidade por agente e por setor, medidos continuamente contra resultados realizados — acurácia direcional sem calibração não habilita o sinal para dimensionamento (§5.2 do projeto); agente descalibrado tem peso encolhido automaticamente no meta-modelo.
 - **Fidelidade de evidência**: 100% das evidências citadas devem existir no banco e ser do período correto — verificação automática, tolerância zero (é o anti-alucinação).
 - **Conformidade de schema**: saída fora do schema → retry automático; taxa de falha > 2% bloqueia promoção.
 - **Estabilidade**: mesmo insumo rodado 5×; a variância do score deve ficar abaixo de limite definido.
@@ -175,6 +177,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] Gates 1, 2 e 3 formalmente aprovados, com relatórios arquivados.
 - [ ] Evals de todos os agentes passando na versão exata de prompt/modelo que vai ao ar (versões congeladas; mudança pós-go-live segue o mesmo processo de eval).
 - [ ] Limites de risco e alçadas revisados e assinados pelo gestor humano.
+- [ ] Camada de calibração e meta-modelo em produção com monitoramento de Brier ativo; regra de conflito assimétrica (reduzir/vetar, nunca aumentar) implementada e testada no OMS.
 - [ ] 100% dos ativos do universo com Dossiê Setorial `aprovado`, dentro da validade e com aprovação humana registrada.
 - [ ] 100% dos ativos do universo com `histórico_completo`: ≥ 10 anos de trimestres sem lacuna, arquivo integral de fatos relevantes e janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente).
 - [ ] Base econômica das duas camadas (§4.3) carregada: painéis setoriais de todos os dossiês aprovados com 10 anos + série global completa com **30 anos**, com check de frescor ativo (série global vencida → Agente Macro degrada para "regime indefinido").
