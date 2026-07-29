@@ -4,7 +4,9 @@
 
 ## 1. Estrutura legal e capital
 
-**Capital próprio, via pessoa física ou PJ/holding.** Sem registro de gestora na CVM nesta fase — nenhuma captação de terceiros é permitida. Gestora própria (Resolução CVM 21 + fundo sob Resolução 175) fica registrada como **meta condicionada**: só entra em avaliação após 2–3 anos de track record auditável do sistema em capital real.
+**Capital próprio, via pessoa física** (decisão do gestor, jul/2026): simplicidade máxima e isenção de IR em vendas até R$ 20 mil/mês em ações à vista — relevante na escala inicial. A consulta formal ao contador (item 6) confirma ou revisa a estrutura **antes do primeiro real em produção**; migração para PJ/holding fica como opção futura por escala ou planejamento patrimonial. Sem registro de gestora na CVM nesta fase — nenhuma captação de terceiros é permitida. Gestora própria (Resolução CVM 21 + fundo sob Resolução 175) fica registrada como **meta condicionada**: só entra em avaliação após 2–3 anos de track record auditável do sistema em capital real.
+
+**Capital: começar pequeno, dimensionar com prova** (decisão do gestor, jul/2026): o capital alvo do go-live pleno **não é fixado agora** — será definido com o track record do paper trading em mãos (Gate 2), quando a conta custo do sistema × capital × performance esperada puder ser feita com dados reais em vez de esperança. O piloto (Gate 3) usa o critério já vigente: valor que dói zero perder por inteiro. Até lá, a viabilidade é governada pelo teto de custo (R$ 1.000/mês, `PROJETO...md` §12).
 
 Implicações tributárias operacionais (PF, a validar com contador na fase de implementação):
 - Swing trade em ações: 15% sobre ganho líquido mensal (isenção de vendas até R$ 20 mil/mês em ações à vista); day trade: 20% sem isenção — **o sistema deve evitar enquadramento em day trade** (compra e venda do mesmo ativo no mesmo dia), restrição codificada no motor de risco para os livros de curtíssimo prazo.
@@ -41,8 +43,8 @@ Implicações tributárias operacionais (PF, a validar com contador na fase de i
 
 ## 6. Pendências delegadas à implementação
 
-- Validação tributária formal (contador) antes do primeiro real em produção.
-- Definição numérica de vol-alvo (proposta a calibrar no backtest: teto de volatilidade anualizada em torno de 15–20%, compatível com o drawdown máximo de 20%).
+- Validação tributária formal (contador) antes do primeiro real em produção — confirma a escolha de PF do item 1.
+- **Vol-alvo (decidido em jul/2026): teto provisório de 18% de volatilidade anualizada**, registrado em `policy_config` desde o dia 1 (meio da faixa, coerente com o drawdown máximo de 20%). O Gate 1 pode propor ajuste dentro de 15–20% com justificativa registrada — parâmetro ancorado no mandato: mudar além da faixa exige o rito de mudança deste documento.
 
 ---
 

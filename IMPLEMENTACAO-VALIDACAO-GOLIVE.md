@@ -30,7 +30,7 @@ flowchart LR
 > **Re-sequenciado (Ponto 7 da revisão, decidido pelo gestor): dados primeiro.** A ingestão é ~60% do esforço real do projeto (entity linking por CNPJ, diários sem feed, PDFs de notas explicativas, NLP em português); os Sprints 1–4 são quase inteiramente dados, e os agentes só entram no Sprint 5 — sobre dados já limpos e medidos. O "agente" da fase inicial é um relatório simples em cima de dados confiáveis: o valor nasce da limpeza. **Regra de infraestrutura:** usar projetos públicos existentes primeiro — **Querido Diário** (Open Knowledge Brasil, diários oficiais municipais), **DataJud/Comunica CNJ** (judicial), **dados abertos CVM** (ITR/DFP estruturados) — com raspadores próprios onde forem necessários ou onde comprovadamente otimizarem resultados (decisão caso a caso, registrada).
 
 ### Sprint 1–2 — Fundação de dados e núcleo de coleta
-- **Semana 1, antes de tudo: ligar o arquivo.** Scripts mínimos de coleta+arquivo point-in-time (S3/Parquet com timestamp de captura) das fontes efêmeras do universo inicial (sites de RI, diários, notícias regionais) rodando antes de qualquer outro componente — o fosso e o futuro backtest começam a contar do primeiro dia do projeto.
+- **Semana 1, antes de tudo: ligar o arquivo.** Scripts mínimos de coleta+arquivo point-in-time (S3/Parquet com timestamp de captura) das fontes efêmeras do universo inicial (sites de RI, diários, notícias regionais) rodando antes de qualquer outro componente — o fosso e o futuro backtest começam a contar do primeiro dia do projeto. **A blindagem nasce junto** (§3.2 item 6): versionamento + object lock/WORM no bucket, replicação para segunda região/provedor e rotina de teste de restore trimestral com verificação de hashes.
 - **Taxonomia setorial completa da B3 + screening do universo** (§12 do projeto): carregar todas as empresas listadas classificadas por setor (`sector_taxonomy`), rodar os seis filtros objetivos sobre os quatro setores candidatos (energia/saneamento, agro/alimentos, saúde/educação, automotivo) e materializar o universo inicial (15–20 + 2–3 âncoras) em `universe_config` — **universo é configuração versionada, nunca código**; trocar setor/empresa depois é ação de configuração.
 - **Política gratuito-primeiro** (§12): todos os coletores da fase de construção usam fontes gratuitas; teto de custo total de R$ 1.000/mês (dominado por LLM — cadência adaptativa, cache e batch desde o primeiro prompt), revisável a cada gate.
 - **Arqueologia de fontes** (§3.2 item 6 do projeto): importar snapshots datados de terceiros neutros — Wayback Machine, Common Crawl, GDELT — para estender o arquivo point-in-time para trás onde existir, com origem e qualidade na ficha de consistência.
@@ -201,6 +201,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] Reconciliação automática diária + alerta de divergência.
 - [ ] Kill switch testado em produção (drill real).
 - [ ] Backup e restore do banco testados; RTO/RPO definidos.
+- [ ] **Blindagem do arquivo point-in-time verificada**: object lock/WORM ativo, replicação em dia para segunda região/provedor, último teste de restore trimestral passando com hashes íntegros.
 - [ ] Monitoramento com alertas: ingestão atrasada, custo LLM anômalo, ordem rejeitada, drawdown intradiário.
 
 **Modelo/decisão**
