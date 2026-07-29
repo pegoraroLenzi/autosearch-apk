@@ -47,7 +47,7 @@ Mater Dei (MATD3) · Oncoclínicas (ONCO3) ⚑ dívida/governança · Odontoprev
 Marcopolo (POMO4) · Randoncorp (RAPT4) · Fras-le/Frasle Mobility (FRAS3) · Tupy (TUPY3) · Iochpe-Maxion (MYPK3) · Mahle Metal Leve (LEVE3) · Schulz (SHUL4) ⚑ liquidez · Vamos (VAMO3) ⚑ reorganização · Movida (MOVI3) ⚑ alavancagem · Armac (ARML3) ⚑ liquidez
 **Âncoras possíveis:** Localiza (RENT3), WEG (WEGE3) ⚑ setor adjacente (bens de capital)
 
-**Próximo passo:** o screening da semana 1 confirma/derruba cada nome pelos 6 filtros e materializa 15–20 + 2–3 âncoras em `universe_config`.
+**Próximo passo:** o screening da semana 1 confirma/derruba cada nome pelos 6 filtros, **escolhe os 2 setores de partida** (orçamento de 15h/semana do mandato) e materializa ~10 empresas + 2–3 âncoras em `universe_config`; os outros 2 setores entram depois, via configuração, conforme dossiês e horas. Consequência prática: **apenas os 2 dossiês dos setores de partida são bloqueantes agora** — os outros 2 podem ser curados com calma.
 
 ---
 

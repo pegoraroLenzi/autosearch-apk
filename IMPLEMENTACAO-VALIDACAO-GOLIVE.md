@@ -31,7 +31,7 @@ flowchart LR
 
 ### Sprint 1–2 — Fundação de dados e núcleo de coleta
 - **Semana 1, antes de tudo: ligar o arquivo.** Scripts mínimos de coleta+arquivo point-in-time (S3/Parquet com timestamp de captura) das fontes efêmeras do universo inicial (sites de RI, diários, notícias regionais) rodando antes de qualquer outro componente — o fosso e o futuro backtest começam a contar do primeiro dia do projeto. **A blindagem nasce junto** (§3.2 item 6): versionamento + object lock/WORM no bucket, replicação para segunda região/provedor e rotina de teste de restore trimestral com verificação de hashes.
-- **Taxonomia setorial completa da B3 + screening do universo** (§12 do projeto): carregar todas as empresas listadas classificadas por setor (`sector_taxonomy`), rodar os seis filtros objetivos sobre os quatro setores candidatos (energia/saneamento, agro/alimentos, saúde/educação, automotivo) e materializar o universo inicial (15–20 + 2–3 âncoras) em `universe_config` — **universo é configuração versionada, nunca código**; trocar setor/empresa depois é ação de configuração.
+- **Taxonomia setorial completa da B3 + screening do universo** (§12 do projeto): carregar todas as empresas listadas classificadas por setor (`sector_taxonomy`), rodar os seis filtros objetivos sobre os quatro setores candidatos (energia/saneamento, agro/alimentos, saúde/educação, automotivo), **escolher os 2 setores de partida pelos dados** e materializar o universo inicial (**~10 empresas + 2–3 âncoras** — escopo derivado das 15h/semana do mandato) em `universe_config` — **universo é configuração versionada, nunca código**; a expansão para os 4 setores é ação de configuração condicionada a dossiê pronto + horas no orçamento.
 - **Política gratuito-primeiro** (§12): todos os coletores da fase de construção usam fontes gratuitas; teto de custo total de R$ 1.000/mês (dominado por LLM — cadência adaptativa, cache e batch desde o primeiro prompt), revisável a cada gate.
 - **Arqueologia de fontes** (§3.2 item 6 do projeto): importar snapshots datados de terceiros neutros — Wayback Machine, Common Crawl, GDELT — para estender o arquivo point-in-time para trás onde existir, com origem e qualidade na ficha de consistência.
 - Repositório, CI/CD (lint, testes, build), infraestrutura como código (Terraform), ambientes `dev` e `prod` separados desde o dia 1.
@@ -72,14 +72,14 @@ flowchart LR
 - **Entregável**: pipeline completo até "propostas de ordem" — sem executar nada.
 
 ### Sprint 8 — OMS e adaptador de corretora (paper)
-- `BrokerAdapter` com implementação Alpaca **paper** + implementação `FakeBroker` (simulador local para testes).
+- `BrokerAdapter` com **`B3PaperBroker`** (simulador próprio de fills B3: liquidez, spread por papel, participação — é nele que o Gate 2 roda) + `FakeBroker` (testes) + Alpaca paper como laboratório opcional de integração (Red-team #1, achado 1).
 - OMS: estado de ordens, fills parciais, reconciliação diária, kill switch manual.
 - **Execução paciente** (§6.4 do projeto): somente ordens limitadas dentro da faixa de preço da tese, participação máxima no volume do pregão, expiração registrada quando o preço foge da faixa — nunca perseguir.
 - **Entregável**: ciclo completo rodando em paper trading, ponta a ponta.
 
 ### Sprint 9–10 — Backtest, camada sistemática e observabilidade
 - Simulador de replay histórico com corte temporal rígido (detalhe na §4.2 — só fontes com point-in-time real).
-- **Camada sistemática de fatores** (§5.1 do projeto): implementação regra-baseada (valor, momentum, qualidade sobre 100+ ativos da B3), backtest próprio completo e tese única de estratégia versionada.
+- **Camada sistemática** (§5.1 do projeto): modo configurável em `policy_config` (`etf` | `nomes_próprios` | `desativada`) — implementação inicial em **modo ETF** (small caps, ex.: SMAL11) com regra de rebalance e tese única de estratégia versionada; backtest do modo ativo (é o que o Gate 1 mede).
 - Painel do gestor (posições, teses, P&L, aprovações pendentes, edição de `universe_config`/`policy_config`) com o **Prontuário da Empresa completo** (§4.8 — agora incluindo a camada de decisão: sinais, teses, autópsias, pré-registros e posição por livro) + alertas (Telegram/e-mail).
 - Runbooks de operação e o checklist de go-live (§6).
 - **Entregável**: relatório de backtest do Gate 1.
@@ -134,32 +134,34 @@ LLMs não se validam com teste unitário. Cada agente tem uma **suíte de evals*
 - **Regressão**: toda mudança de prompt ou de modelo roda a suíte inteira; resultado registrado junto ao prompt versionado. Sem eval aprovado, a mudança não vai para produção.
 - **LLM-judge + amostragem humana**: um juiz automatizado avalia coerência tese×evidências; 10% das teses da semana são revisadas por humano durante a rampa.
 
-### 4.2 Backtest (Gate 1)
+### 4.2 Backtest (Gate 1) — o que ele gateia, formalmente
 
-- **Escopo honesto (Ponto 4 da revisão, decidido):** o backtest cobre apenas fontes com point-in-time real (preços, fundamentos CVM, fatos relevantes, sentimento licenciado). As fontes sem histórico (imprensa regional, diários, reviews, fornecedores) ficam de fora do Gate 1 e são validadas prospectivamente (pré-registro, §4.4) — o Gate 2 estendido carrega esse peso.
-- **Metodologia walk-forward**: nunca otimizar e medir no mesmo período. Ex.: calibrar em 2019–2022, validar em 2023–2025, em janelas rolantes.
-- **Proteções contra vieses**:
-  - *Look-ahead*: corte temporal rígido — o replay só entrega documentos com timestamp ≤ dia simulado; prompts instruem o agente a ignorar conhecimento posterior, e o eval de fidelidade pega citações anacrônicas.
-  - *Survivorship*: universo definido pela composição histórica do índice, incluindo empresas que deslistaram.
-  - *Custos realistas*: corretagem, slippage estimado por liquidez, impostos.
-- **Critérios de aprovação (definidos antes de rodar, para não "escolher o resultado")** — sugestão inicial, a calibrar:
-  - Sharpe fora-da-amostra ≥ 0,8 e retorno > **as duas réguas do `MANDATO.md`** (CDI como piso + Ibovespa como benchmark de habilidade) no período de validação.
-  - Drawdown máximo ≤ 20%; nenhuma violação de limite de risco no replay.
-  - Resultado não pode depender de < 5 trades ("um acerto de sorte").
+**Escopo do Gate 1 (redefinido no Red-team #1, achado 4):** o Gate 1 valida por backtest **apenas o que é backtestável com honestidade**: (a) a **camada sistemática** (point-in-time real, regras determinísticas — é o livro mais backtestável do fundo) e (b) a **mecânica do motor de risco** (limites, stress, invariantes sob replay). **A performance dos agentes LLM não é medida por backtest** — memória paramétrica do modelo não se remove por prompt, e replay de anos de comitê não cabe no orçamento; para os agentes, o replay é validação funcional (o fluxo roda de ponta a ponta) e a performance é responsabilidade da validação prospectiva (§4.4), com metas numéricas próprias definidas antes (ex.: acerto direcional dos pré-registros ≥ 60% e Brier ≤ 0,25 com o n mínimo do §4.3).
+
+- **Metodologia walk-forward** (para o que é backtestável): nunca otimizar e medir no mesmo período; janelas rolantes.
+- **Proteções contra vieses**: corte temporal rígido; *survivorship* (composição histórica do índice, incluindo deslistadas); custos realistas (corretagem, slippage por liquidez, impostos).
+- **Critérios de aprovação (definidos antes de rodar)** — sugestão inicial, a calibrar:
+  - Camada sistemática: Sharpe fora-da-amostra ≥ 0,8 e retorno > **as duas réguas do `MANDATO.md`** no período de validação; drawdown ≤ 20%; resultado não pode depender de < 5 trades.
+  - Motor de risco: zero violação de invariante no replay completo.
+  - Pipeline de agentes: ciclo ponta a ponta funcional no replay (validação de fluxo, sem métrica de performance).
 - **Anti-overfitting**: número limitado de rodadas de ajuste (registradas); se precisar de muitas iterações para "passar", o resultado é suspeito por definição.
 
-### 4.3 Paper trading (Gate 2) — 6 meses
+### 4.3 Paper trading (Gate 2) — 6 meses, no mercado certo, com estatística honesta
 
-O backtest valida a lógica; o paper valida o **sistema vivo** (dados atrasam, APIs caem, mercado surpreende). Duração de **6 meses** (decisão do Ponto 4): cobre 2 temporadas completas de resultados trimestrais — o mínimo para validar promessa×entrega, o classificador, a calibração e as fontes que o backtest não cobre.
+O backtest valida a lógica; o paper valida o **sistema vivo**. Duração de **6 meses** (Ponto 4): cobre 2 temporadas de resultados. Duas correções do Red-team #1 (achados 1 e 5):
 
-- Rodar o ciclo diário completo com ordens reais na conta paper da Alpaca, sem nenhuma intervenção manual no meio (intervenção = incidente a registrar).
+**Mercado certo:** o paper roda a **carteira B3 no simulador próprio** (`B3PaperBroker`, fills modelados com dados B3 reais) — não na Alpaca, que não negocia B3; Alpaca fica como laboratório opcional de integração. Durante o Gate 2, a **ponte B3 real (MT5/Cedro) é construída e roda em modo espelho** (recebe as mesmas ordens, sem executar).
+
+**Estatística honesta — n mínimo e rampa por livro:** toda métrica estatística tem **n mínimo definido antes de ser medida** (ex.: acerto direcional e Brier só são julgados com ≥ 30 previsões resolvidas no agregado; célula agente×setor com n < 10 não é julgada — é reportada como "sem amostra"). Em 6 meses, só os livros rápidos acumulam desfechos — portanto o Gate 2 **avalia curto prazo + camada sistemática + operação**; os livros de médio/longo/núcleo **não são julgados por performance no Gate 2**: entram no capital real com **orçamento de risco reduzido e rampa própria** — a liberação progressiva do orçamento de cada livro acompanha o n acumulado dele (parâmetros da rampa em `policy_config`).
+
+- Rodar o ciclo diário completo com ordens no simulador, sem nenhuma intervenção manual no meio (intervenção = incidente a registrar).
 - **Critérios de aprovação**:
   - ≥ 95% dos dias com ciclo completo executado sem intervenção manual.
   - Zero violação de limite de risco; zero ordem sem tese vinculada.
-  - Reconciliação OMS×corretora batendo 100% (divergência = bug bloqueante).
-  - Performance dentro da banda esperada pelo backtest (não precisa ganhar do mercado no período — precisa se comportar como previsto; desvio grande entre paper e backtest indica bias não tratado).
-  - **Track record prospectivo (§4.4) apurado nas 2 temporadas**: taxa de acerto e calibração (Brier) dos pré-registros dentro das metas por agente.
-  - Custo de LLM por dia dentro do orçamento.
+  - Reconciliação OMS×simulador batendo 100%; ponte B3 em modo espelho sem divergência de tradução de ordens.
+  - Camada sistemática dentro da banda esperada pelo backtest.
+  - **Track record prospectivo (§4.4) nas 2 temporadas**: metas de acerto direcional e Brier atingidas **onde o n mínimo foi alcançado**; células sem amostra explicitamente reportadas.
+  - Custo de LLM por dia e **horas humanas por semana** dentro dos orçamentos (mandato §5).
   - Todos os incidentes com causa-raiz documentada e corrigida.
 
 ### 4.4 Validação prospectiva com pré-registro (contínua, começa no Sprint 5 com o modo sombra)
@@ -190,7 +192,8 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - Capital: valor que dói zero perder por inteiro (ex.: 1–5% do capital alvo).
 - Modo de alçada: **toda** ordem exige aprovação humana nas 2 primeiras semanas; depois, só acima do limiar.
 - Comparação diária paper×real rodando em paralelo: o slippage real vira parâmetro do backtest.
-- Critérios para o go-live pleno: mesmos do Gate 2 + slippage real dentro do estimado + zero incidente crítico no período.
+- **Pré-condição de entrada (Red-team #1, achado 1): ponte B3 real (MT5/Cedro) validada em modo espelho durante o Gate 2** — o piloto executa pela ponte que o paper já exercitou; capital real nunca estreia uma ponte nova.
+- Critérios para o go-live pleno: mesmos do Gate 2 + slippage real dentro do estimado + zero incidente crítico no período + **rampa por livro configurada** (livros de médio/longo/núcleo começam com orçamento reduzido, liberação progressiva pelo n acumulado — §4.3).
 
 ---
 
