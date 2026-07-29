@@ -422,7 +422,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 2. **Validação prospectiva com pré-registro (obrigatória)**: todo sinal relevante grava, **antes do desfecho**, uma previsão falsificável com prazo (ex.: "este sinal implica surpresa negativa no ITR de X em ≤ 2 trimestres"), armazenada em `predictions`. O sistema acumula um track record prospectivo auditável por agente, fonte e setor — imune à racionalização retroativa, e é o que alimenta a calibração do §5.2 com dados limpos.
 3. **Paper trading** por no mínimo **6 meses** antes de capital real (decisão do Ponto 4: cobre 2 temporadas de resultados completas — o paper carrega o peso de validação que o backtest não pode carregar nas fontes sem histórico point-in-time).
 4. **Métricas**: Sharpe, Sortino, drawdown máximo, hit rate por agente (qual agente acerta mais?), custo de transação simulado.
-5. **Atribuição por agente**: medir a contribuição de cada tipo de sinal ao resultado — é o mecanismo de melhoria contínua do comitê.
+5. **Atribuição em três eixos — por agente, por livro (§5.1) e por fonte de dado** (Ponto 9 da revisão, decidido): a contribuição de cada fonte é estimada por **ablação no meta-modelo** (quanto o poder preditivo cai sem aquela família de features), propagando pelos `evidências[]` de cada sinal. **Critério de morte:** revisão semestral; fonte que por **2 ciclos consecutivos** não paga seu custo total (licença + manutenção + tokens) é **desligada** — com **notificação ao gestor explicando o ocorrido e o porquê da decisão** (nunca silenciosa), e com o arquivo point-in-time preservado (religar depois é barato). É o mecanismo de melhoria contínua do sistema: nada entra de graça e nada fica por inércia.
 
 ---
 
@@ -445,6 +445,8 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 | Dados LinkedIn/Glassdoor licenciados | US$ 500 – 5.000 (é o item mais caro; no MVP, começar sem ou com amostras) |
 | Notícias/research | US$ 0 – 500 |
 | Infraestrutura (cloud) | US$ 100 – 400 |
+
+**TCO por empresa coberta (Ponto 9, decidido):** o custo total de propriedade por empresa — licenças de dados rateadas + tokens de LLM + infraestrutura + horas humanas estimadas — é métrica acompanhada no **relatório mensal**, contra um orçamento-teto definido pelo gestor. Expandir o universo ou adicionar fonte passa a ter preço visível antes da decisão.
 
 ---
 

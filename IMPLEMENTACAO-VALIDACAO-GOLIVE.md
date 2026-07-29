@@ -225,7 +225,7 @@ O go-live inclui as condições de **descer a rampa**, decididas antes, a frio:
 | 2+ incidentes críticos em 30 dias | Volta para paper trading |
 | Performance real fora da banda do backtest por 2 meses | Revisão completa da estratégia com capital reduzido |
 
-E o ciclo de melhoria contínua: atribuição de performance por agente (mensal) decide onde investir esforço — agente que não agrega sinal mensurável é simplificado ou removido.
+E o ciclo de melhoria contínua: atribuição de performance **por agente, por livro e por fonte de dado** (mensal) decide onde investir esforço — agente que não agrega sinal mensurável é simplificado ou removido; **fonte que não paga seu custo total por 2 ciclos semestrais consecutivos é desligada, com notificação ao gestor do ocorrido e do porquê** (arquivo point-in-time preservado); e o **TCO por empresa coberta** sai no relatório mensal contra o orçamento-teto do gestor.
 
 ---
 
