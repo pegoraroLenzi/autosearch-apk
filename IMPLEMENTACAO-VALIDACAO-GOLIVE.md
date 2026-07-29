@@ -48,7 +48,8 @@ flowchart LR
 - **Classificador de relevância e canal de impacto** (`PROJETO...md` §3.2 item 4) com eval próprio (golden set de notícias rotulado) — é ele que segura o ruído da captura ampla.
 - **Backfill histórico exaustivo** (`PROJETO...md` §4.2, alvo de 10 anos, incluindo pré-IPO) e **backfill econômico** (§4.3: global 30 anos no bootstrap; painéis setoriais 10 anos com cada dossiê) → **Fichas de Consistência de Dados** geradas por empresa.
 - **Dossiês Setoriais do universo inicial** (§4.1) com curadoria e aprovação humana; **peer sets** (§4.4); **mapa de fornecedores-chave** (§4.6); **mapa de receita por geografia** (§4.3-1b).
-- **Entregável**: relatório diário "burro" mas confiável — todos os dados do universo inicial limpos, linkados, arquivados e com ficha de consistência; nenhum agente ainda.
+- **Prontuário da Empresa v1** (§4.8 do projeto): interface navegável do inventário completo por empresa — todos os documentos com fonte/timestamp/relevância/link/hash, linha do tempo, filtros, busca, conferência de contagens contra a ficha de consistência e export CSV/Parquet. Nasce aqui, antes dos agentes: primeiro o gestor confere o que o sistema sabe.
+- **Entregável**: relatório diário "burro" mas confiável + prontuário navegável — todos os dados do universo inicial limpos, linkados, arquivados, com ficha de consistência e conferíveis pelo gestor; nenhum agente ainda.
 
 ### Sprint 5 — Primeiros agentes (sobre dados limpos)
 - Índice vetorial (pgvector) + memória por ativo.
@@ -79,7 +80,7 @@ flowchart LR
 ### Sprint 9–10 — Backtest, camada sistemática e observabilidade
 - Simulador de replay histórico com corte temporal rígido (detalhe na §4.2 — só fontes com point-in-time real).
 - **Camada sistemática de fatores** (§5.1 do projeto): implementação regra-baseada (valor, momentum, qualidade sobre 100+ ativos da B3), backtest próprio completo e tese única de estratégia versionada.
-- Painel do gestor (posições, teses, P&L, aprovações pendentes) + alertas (Telegram/e-mail).
+- Painel do gestor (posições, teses, P&L, aprovações pendentes, edição de `universe_config`/`policy_config`) com o **Prontuário da Empresa completo** (§4.8 — agora incluindo a camada de decisão: sinais, teses, autópsias, pré-registros e posição por livro) + alertas (Telegram/e-mail).
 - Runbooks de operação e o checklist de go-live (§6).
 - **Entregável**: relatório de backtest do Gate 1.
 
@@ -212,6 +213,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] Governança de aprovação humana ativa (§5.3 do projeto): SLA de 48h com expiração conservadora testada, modo preservação com drill de ausência executado, fila de atenção com teto de 5 itens/dia no painel; re-underwriting cego semestral do núcleo agendado.
 - [ ] 100% dos ativos do universo com Dossiê Setorial `aprovado`, dentro da validade e com aprovação humana registrada.
 - [ ] 100% dos ativos do universo com **Ficha de Consistência de Dados** gerada e atualizada (incluindo coleta pré-IPO para listagens recentes), com a janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente e refletido na ficha).
+- [ ] **Prontuário da Empresa** (§4.8) funcional para 100% do universo, com conferência de contagens passando (ficha × acervo real, sem divergência) e export testado.
 - [ ] Base econômica das duas camadas (§4.3) carregada: painéis setoriais de todos os dossiês aprovados com 10 anos + série global completa com **30 anos**, com check de frescor ativo (série global vencida → Agente Macro degrada para "regime indefinido").
 - [ ] 100% das empresas do universo com peer set coberto (§4.4) e, onde houver nova frente de negócio, Motor 2 criado com dossiê do setor novo aprovado ou tese com desconto de confiança registrado (§4.5).
 - [ ] 100% das empresas do universo com mapa de fornecedores-chave registrado e monitoramento ativo dos críticos (§4.6), com revisão vinculada ao ciclo de ITR.

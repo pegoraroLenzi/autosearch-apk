@@ -289,6 +289,18 @@ Um agente **nunca** mistura bases específicas de empresas diferentes fora do pe
 
 **Benefício técnico direto:** a Base Fixa é estável dentro do dia → entra como prefixo **cacheável** do prompt dos agentes (prompt caching), reduzindo custo por análise e garantindo que todas as empresas sejam analisadas exatamente com a mesma régua metodológica.
 
+### 4.8 Prontuário da Empresa: inventário auditável e conferível (requisito do gestor)
+
+**Todo o acervo do sistema sobre cada empresa é navegável, auditável e conferível pelo gestor** — não apenas consumido pelos agentes. Para cada empresa do universo (e peers/fornecedores cobertos), o painel expõe o **Prontuário**:
+
+- **Inventário completo:** todos os documentos coletados — notícias (nacionais e regionais), diários oficiais, andamentos judiciais, fatos relevantes, releases e diffs de RI, dados de fornecedores, radar de tecnologia — cada um com **fonte, timestamp de captura, classificação de relevância dada pelo classificador, link ao original e hash do arquivo point-in-time**; mais fundamentos trimestrais, séries de preço, painéis econômicos aplicáveis, mapa geográfico/receita, peer set, fornecedores-chave e motores.
+- **Camada de decisão visível:** sinais emitidos sobre a empresa (com evidências clicáveis até o documento), teses (vivas e encerradas, com autópsias da `case_library`), pré-registros de previsões e desfechos, posição atual por livro.
+- **Navegação:** linha do tempo unificada; filtros por fonte, tipo, período e relevância; busca textual e semântica dentro do prontuário.
+- **Conferência de inventário (auditoria de contagem):** a Ficha de Consistência (§4.2) exibe contagens por fonte e período — e o prontuário permite **verificar**: contagem declarada = contagem real de documentos no arquivo, com drill-down até cada item. Divergência entre ficha e acervo é bug bloqueante de qualidade de dados.
+- **Export:** o prontuário completo (ou qualquer filtro dele) é exportável em CSV/Parquet — o acervo é do gestor, não do sistema.
+
+O prontuário nasce na fase de dados (é o entregável navegável do "relatório burro" — Sprint 3–4), antes de qualquer agente: primeiro se confere o que o sistema sabe, depois se deixa o sistema opinar.
+
 ---
 
 ## 5. Comitê de investimento (decisão)
@@ -480,7 +492,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 | Backtesting | vectorbt ou backtrader; simulador próprio para a camada de decisão por agentes |
 | Execução | Alpaca SDK (MVP) atrás do `BrokerAdapter` |
 | Observabilidade | Grafana + logs estruturados; alertas por Telegram/e-mail |
-| Painel do gestor | Web app simples (Next.js ou Streamlit): portfólio, teses, aprovações pendentes, P&L |
+| Painel do gestor | Web app simples (Next.js ou Streamlit): portfólio, teses, aprovações pendentes, P&L, edição de `universe_config`/`policy_config` e o **Prontuário da Empresa** (§4.8 — inventário completo navegável, conferência de contagens e export) |
 
 ---
 
