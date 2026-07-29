@@ -23,6 +23,7 @@ Um fundo de investimento **AI-native**: a inteligência artificial não é uma f
 - **Decisão explicável**: nenhuma ordem é enviada sem uma tese escrita pelo agente, com as evidências que a sustentam.
 - **Humano no circuito (configurável)**: modos *autônomo*, *aprovação por alçada* (ordens acima de X exigem OK humano) e *somente sugestão*.
 - **Backtest antes de produção**: toda estratégia roda em simulação e paper trading antes de tocar dinheiro real.
+- **Política é configuração, não código** (requisito do gestor): os parâmetros de ganho e de risco — hurdle (CDI + prêmio), alvos de retorno e assimetria mínima, stop/take-profit padrão, orçamentos de risco por livro, limites por posição/setor/fator/liquidez, SLA e orçamento de atenção, teto de custo — vivem em **configuração versionada** (`policy_config`), nunca em constantes no código. Mudar um parâmetro é ação do gestor via painel, com trilha de auditoria, **sem deploy** — no mesmo padrão do `universe_config`.
 
 ---
 
@@ -364,6 +365,12 @@ Camada determinística (não-LLM, regras duras) que valida cada proposta:
 - Filtro de liquidez (não montar posição maior que X% do volume médio diário).
 - Alçadas: ordens acima de um valor exigem aprovação humana (notificação push/e-mail com a tese anexa).
 
+**Todos os parâmetros numéricos deste motor são configuração, não código** (`policy_config`, princípio do §1): limites, orçamentos por livro, hurdle, stops padrão, participação no volume, gatilhos de stress. Regras de governança da configuração:
+1. **Mudança é ato do gestor**, registrada com autor, motivo e timestamp; entra em vigor **no próximo ciclo de decisão**, nunca retroativa nem no meio de uma execução.
+2. **Hierarquia respeitada:** parâmetros ancorados no `MANDATO.md` (drawdown máximo 20%, réguas CDI/Ibovespa, long-only) aparecem na configuração como **somente leitura** — mudá-los exige o rito de mudança de mandato, não um clique.
+3. **Afrouxar limite com posição em violação não regulariza a posição:** o motor continua exigindo redução até o estado ficar consistente com a configuração vigente.
+4. **As invariantes de teste rodam contra configuração arbitrária válida** (property-based): o motor é correto para qualquer conjunto de parâmetros, não apenas para os default.
+
 ---
 
 ### 5.3 Governança da aprovação humana: SLA, ausência e orçamento de atenção (Ponto 11, decidido)
@@ -445,6 +452,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 - `data_coverage` — **Ficha de Consistência de Dados** por empresa (§4.2): período coberto, lacunas, qualidade e frescor por fonte; injetada no contexto dos agentes e anexada às teses.
 - `sector_taxonomy` — taxonomia setorial completa da B3: **todas** as empresas listadas, classificadas por setor/subsetor, atualizada periodicamente (§12 — universo é configuração, não código).
 - `universe_config` — configuração versionada do universo ativo (setores e empresas habilitados, âncoras, estado de onboarding de cada uma); toda mudança é registro auditável, sem deploy.
+- `policy_config` — **parâmetros de ganho e política versionados** (§1 e §5, motor de risco): hurdle, alvos, stops padrão, orçamentos por livro, limites por posição/setor/fator/liquidez, SLA, teto de custo — com autor, motivo, vigência e marcação somente-leitura para os parâmetros ancorados no mandato.
 - `material_facts` — arquivo integral de fatos relevantes por ativo (≥ 10 anos, com timestamp original), vinculado aos `signal_documents`.
 - `econ_series` — séries econômicas das duas camadas do §4.3 (setoriais: 10 anos; globais: 30 anos), com fonte, frequência, peso e check de frescor.
 - `signal_documents` — todo conteúdo ingerido, normalizado, com vínculo a ativos.

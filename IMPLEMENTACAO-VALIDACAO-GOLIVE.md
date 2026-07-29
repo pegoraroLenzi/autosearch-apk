@@ -65,7 +65,7 @@ flowchart LR
 - **Verificador determinístico de tese** (Ponto 8): checklist em código puro (números×banco, evidências×janela temporal, contradição com posições vivas, ficha anexada, **campos obrigatórios da tese: percepção variante, catalisador com prazo, assimetria/hurdle de CDI, faixa de preço**), bloqueante — tese reprovada não segue ao meta-modelo; coberto por testes unitários como o motor de risco.
 - **Biblioteca de Casos + autópsia** (§5.4 do projeto): mecanismo de autópsia obrigatória no encerramento de tese (causa classificada: tese/timing/tamanho/dado/azar), caso rotulado em `case_library` com indexação semântica e recuperação de precedentes no contexto dos agentes.
 - **Camada de calibração + meta-modelo** (`PROJETO...md` §5.2): regressão isotônica, Brier/curvas por agente e setor, shrinkage; meta-modelo em cold start (pesos iguais + encolhimento), com verificação de que as features representam os sinais qualitativos das bases (requisito de mandato).
-- **Motor de risco como biblioteca pura e determinística** (sem LLM, sem I/O), 100% testável.
+- **Motor de risco como biblioteca pura e determinística** (sem LLM, sem I/O), 100% testável — **com todos os parâmetros lidos de `policy_config`** (política é configuração, não código — §1 e §5 do projeto): mudança de limite/hurdle/orçamento é ação do gestor no painel, vigente no próximo ciclo, sem deploy; parâmetros ancorados no mandato são somente-leitura.
 - **Modelo de risco de fatores + stress diário** (Ponto 5): betas por ativo, limites sobre exposições líquidas por fator, stress contra cenários históricos com gatilho de só-redução.
 - **Limite de liquidez por posição** (saída em ≤ 5 pregões a ≤ 10% do ADV) e **stops intraday** via monitor contínuo — decisões novas são EOD, defesa não é (§5 do projeto, mitigações §14.1).
 - **Entregável**: pipeline completo até "propostas de ordem" — sem executar nada.
@@ -102,7 +102,7 @@ flowchart LR
 
 ### Invariantes do motor de risco (testes de propriedade — exemplos)
 
-Para *qualquer* sequência de propostas e *qualquer* estado de portfólio:
+Para *qualquer* sequência de propostas, *qualquer* estado de portfólio **e qualquer configuração válida de `policy_config`** (as invariantes valem para todo conjunto de parâmetros, não só os default):
 - Nenhuma posição resultante excede o limite por ativo/setor.
 - Com circuit breaker ativo, nenhuma ordem aumenta exposição.
 - Nenhuma sequência de ordens leva as exposições líquidas por fator acima dos limites; com perda simulada de stress acima do drawdown do mandato, o motor entra (e permanece) em modo só-redução até liberação humana.
@@ -114,6 +114,7 @@ Para *qualquer* sequência de propostas e *qualquer* estado de portfólio:
 - Toda ordem referencia tese com **Ficha de Consistência de Dados** anexada e vigente (§4.2 — o histórico não bloqueia, mas toda decisão registra com que dados foi tomada).
 - Ordem com tamanho > X% do volume médio diário nunca é aprovada.
 - Nenhuma ordem a mercado no caminho normal (exceção única: stops de proteção); toda ordem de entrada é limitada e dentro da faixa de preço da tese vigente (§6.4 do projeto).
+- Mudança de configuração nunca vale retroativamente nem no meio de uma execução; afrouxar limite com posição em violação não regulariza a posição; parâmetros ancorados no mandato não são alteráveis via `policy_config`.
 - O motor é determinístico: mesma entrada → mesma saída, sempre.
 
 ---
@@ -204,7 +205,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 **Modelo/decisão**
 - [ ] Gates 1, 2 e 3 formalmente aprovados, com relatórios arquivados.
 - [ ] Evals de todos os agentes passando na versão exata de prompt/modelo que vai ao ar (versões congeladas; mudança pós-go-live segue o mesmo processo de eval).
-- [ ] Limites de risco e alçadas revisados e assinados pelo gestor humano.
+- [ ] Limites de risco e alçadas revisados e assinados pelo gestor humano — **em `policy_config` versionada** (política é configuração: todos os parâmetros de ganho/risco editáveis no painel sem deploy, com os ancorados no mandato marcados somente-leitura).
 - [ ] Camada de calibração e meta-modelo em produção com monitoramento de Brier ativo; regra de conflito assimétrica (reduzir/vetar, nunca aumentar) implementada e testada no OMS.
 - [ ] Modelo de fatores ativo (betas atualizados, limites líquidos configurados) e stress test diário rodando no relatório com o gatilho de só-redução testado em drill.
 - [ ] Papéis adversariais rodando em segunda família de LLM (com evals aprovados nas duas) e verificador determinístico de tese ativo e bloqueante.
