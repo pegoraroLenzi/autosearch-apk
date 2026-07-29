@@ -33,13 +33,14 @@ Implicações tributárias operacionais (PF, a validar com contador na fase de i
 
 **B3 é o alvo; EUA é laboratório agora — e vira alvo também depois da validação.**
 
-1. **Fase atual (construção/validação):** universo analisável é B3 (onde está todo o diferencial de fontes do projeto: CVM, diários oficiais das 3 esferas, judicial, imprensa regional — sinais que ninguém arbitra). Execução nos EUA via Alpaca funciona como **laboratório**: valida o ciclo ordem→fill→reconciliação em paper trading enquanto a ponte de execução B3 (MT5/Cedro) não entra.
+1. **Fase atual (construção/validação):** universo analisável é B3 (onde está todo o diferencial de fontes do projeto: CVM, diários oficiais das 3 esferas, judicial, imprensa regional — sinais que ninguém arbitra). **O paper trading valida a carteira B3 em simulador próprio com dados B3** (Red-team #1, achado 1 — a rampa deve validar o mercado onde o dinheiro vai operar); a Alpaca fica como laboratório opcional de integração ordem→fill→reconciliação contra uma API real. A ponte de execução B3 (MT5/Cedro) é construída e testada **durante** o Gate 2, e "ponte B3 validada em modo espelho" é critério do Gate 3.
 2. **Pós-validação (gates cumpridos em capital real na B3):** os EUA são promovidos de laboratório a **segundo mercado-alvo**, com o mesmo rito de entrada exigido para qualquer expansão: dossiês setoriais dos setores americanos cobertos, painéis econômicos, peer sets — os pré-requisitos dos §§4.1–4.6 valem integralmente; nenhum atalho por ser mercado "mais fácil".
 
-## 5. Capacidade e giro
+## 5. Capacidade, giro e orçamento de atenção
 
 - Capacidade limitada pela regra de liquidez já vigente (posição ≤ X% do volume médio diário — motor de risco); irrelevante como restrição na escala de capital próprio inicial, revisitada se houver gestora.
-- Giro esperado dominado pelos livros de médio/longo prazo e núcleo (ver §5.1 do projeto); livros de curtíssimo/curto prazo operam sob a restrição tributária do item 1 (evitar day trade).
+- Giro esperado dominado pelos livros de médio/longo prazo e núcleo (ver §5.1 do projeto); o livro de curto prazo opera sob a restrição tributária do item 1 (evitar day trade). O livro de curtíssimo prazo foi **eliminado do escopo** até existirem dados intraday e ponte B3 reais (Red-team #1, achado 8).
+- **Orçamento de atenção do gestor: 15 horas/semana** (decisão do gestor, Red-team #1 achado 6) — o teto de horas humanas que o sistema pode consumir (aprovações, rotulagem, curadoria de dossiês, autópsias, revisões). O escopo deriva dele: **fase inicial com 2 setores e ~10 empresas + âncoras**, expandindo para os 4 setores candidatos via `universe_config` conforme dossiês ficam prontos e as horas reais couberem. **Horas reais vs. orçadas é métrica acompanhada e critério de gate** — estouro sistemático reduz escopo, não aumenta a jornada.
 
 ## 6. Pendências delegadas à implementação
 
