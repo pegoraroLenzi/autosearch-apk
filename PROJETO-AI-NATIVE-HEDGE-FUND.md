@@ -1,6 +1,8 @@
 # Projeto: AI-Native Hedge Fund
 
 > **Status:** Documento de projeto (design). Nada aqui foi construído — este arquivo define visão, arquitetura, componentes, fluxos, stack sugerida, riscos e roadmap para uma futura implementação.
+>
+> **Mandato:** as decisões-mãe do fundo (estrutura, direcionalidade, benchmark, mercado-alvo) estão no **`MANDATO.md`** — capital próprio · long-only com short condicionado à fase 4+ · Ibov + CDI como piso · B3 como alvo com EUA de laboratório (e alvo após validação). Este documento obedece ao mandato.
 
 ---
 

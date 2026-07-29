@@ -116,7 +116,7 @@ LLMs não se validam com teste unitário. Cada agente tem uma **suíte de evals*
   - *Survivorship*: universo definido pela composição histórica do índice, incluindo empresas que deslistaram.
   - *Custos realistas*: corretagem, slippage estimado por liquidez, impostos.
 - **Critérios de aprovação (definidos antes de rodar, para não "escolher o resultado")** — sugestão inicial, a calibrar:
-  - Sharpe fora-da-amostra ≥ 0,8 e retorno > benchmark (Ibov/CDI ou S&P) no período de validação.
+  - Sharpe fora-da-amostra ≥ 0,8 e retorno > **as duas réguas do `MANDATO.md`** (CDI como piso + Ibovespa como benchmark de habilidade) no período de validação.
   - Drawdown máximo ≤ 20%; nenhuma violação de limite de risco no replay.
   - Resultado não pode depender de < 5 trades ("um acerto de sorte").
 - **Anti-overfitting**: número limitado de rodadas de ajuste (registradas); se precisar de muitas iterações para "passar", o resultado é suspeito por definição.
