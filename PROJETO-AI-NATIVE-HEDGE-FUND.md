@@ -230,6 +230,39 @@ Regras da avaliação segregada:
 
 **Consumo do sinal:** alimenta o Agente Fundamentalista (custos, margens, risco de suprimento na tese), o Agente de Concorrência (poder de barganha dos fornecedores — a força de Porter que o peer set não cobre) e o monitor intradiário (evento súbito na cadeia reabre a análise do livro afetado). O mesmo mecanismo fica **extensível a clientes-chave** (concentração de receita: o cliente relevante também denuncia — registrado como evolução natural, não como requisito atual).
 
+### 4.7 Arquitetura de conhecimento: base fixa e base específica
+
+Todo o conhecimento do sistema é separado em **duas bases com naturezas, governanças e ciclos de atualização distintos**:
+
+**Base Fixa — o que se aplica a todas as análises.** Conhecimento independente de qualquer empresa individual:
+
+| Conteúdo | Observação |
+|---|---|
+| Fundamentação teórica completa (frameworks, instrumentos de leitura, critério de confiabilidade e exclusões) | `FUNDAMENTACAO-TEORICA.md` operacionalizada |
+| Metodologia do fundo | Livros/horizontes (§5.1), regras de datação (§3.2), hierarquia de ponderação (§4.3), política de risco |
+| Base econômica global (30 anos) e doméstica geral | Camada 2 do §4.3 |
+| **Módulos compartilhados:** Dossiês Setoriais (§4.1) e painéis de mercados de destino (§4.3-1b) | Não são universais, mas são **reutilizáveis** — o mesmo dossiê serve a todas as empresas do setor; o painel de Angola serve a todas que vendem para Angola. Vivem na base fixa como módulos plugáveis |
+
+**Base Específica — individual de cada empresa.** Tudo que é 1:1 com a companhia: 10 anos de trimestres e fatos relevantes, mapa geográfico (sede/operações), mapa de receita/mercados atendidos, peer set e desempenho relativo, motores (§4.5), fornecedores-chave (§4.6), litígios, canais oficiais monitorados, sinais emitidos, teses, memória do ativo e linha do tempo decisão→anúncio→entrega.
+
+**Regra de montagem do contexto de análise:** quando um agente analisa a empresa X, seu contexto é montado deterministicamente:
+
+```
+contexto(X) = núcleo da Base Fixa
+            + módulo setorial do setor de X (e do setor do Motor 2, se houver)
+            + módulos dos mercados atendidos por X
+            + Base Específica de X
+            (+ Bases Específicas dos peers de X, somente via peer set formal do §4.4)
+```
+
+Um agente **nunca** mistura bases específicas de empresas diferentes fora do peer set formal — isolamento que evita contaminação entre análises e mantém a trilha de auditoria limpa.
+
+**Governança assimétrica (a razão da separação):**
+- **Base Fixa:** mudança é rara e de alto impacto — altera *todas* as análises. Por isso segue o mesmo rito de mudança de prompt/modelo: versionamento, aprovação humana e rodada de evals antes de ir a produção.
+- **Base Específica:** flui continuamente pelo pipeline diário (ingestão → classificação → memória), com a auditoria padrão de documentos e sinais.
+
+**Benefício técnico direto:** a Base Fixa é estável dentro do dia → entra como prefixo **cacheável** do prompt dos agentes (prompt caching), reduzindo custo por análise e garantindo que todas as empresas sejam analisadas exatamente com a mesma régua metodológica.
+
 ---
 
 ## 5. Comitê de investimento (decisão)
