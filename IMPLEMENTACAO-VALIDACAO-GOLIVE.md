@@ -33,7 +33,7 @@ flowchart LR
 - Coletores: market data EOD (fonte gratuita) + fatos relevantes CVM/EDGAR + feeds de notícias **nacionais e regionais** (portais regionais definidos pelo mapa de sede/operações de cada companhia, com critério de captura amplo: empresa, mercado, economia, regulamentação/legislação) + **portais oficiais de governo** (federal: gov.br/Agência Brasil/DOU; estadual e municipal conforme sede e operações de cada companhia do universo, cadastradas no onboarding) + **canais oficiais de cada companhia** (site institucional e de RI com detecção de mudança/diff, releases, apresentações) + **portais de notificação judicial** (CNJ/DJEN e tribunais por CNPJ — empresa e peers; agregador comercial como acelerador se o custo couber) + **radar de tecnologia/inovação por setor** (patentes INPI/USPTO, funding Crunchbase, imprensa tech como secundária).
 - **Mapa de receita por geografia** no onboarding (`PROJETO...md` §4.3 camada 1b): extração das notas explicativas e RI; mercados com ≥ 10% da receita ganham painel econômico próprio (10 anos) e assinatura de notícias/atos oficiais daquele mercado; revisão a cada ITR.
 - **Classificador de relevância e canal de impacto** (`PROJETO...md` §3.2 item 4): tipo de relação (direta/setor/economia/regulação), tickers afetados via setor e geografia, e score que prioriza a fila dos agentes — com eval próprio (golden set de notícias rotulado) desde o primeiro sprint, pois é ele que segura o ruído da captura ampla.
-- **Backfill histórico de 10 anos** (`PROJETO...md` §4.2) para o universo inicial: todos os trimestres (ITR/DFP da CVM ou 10-Q/10-K do EDGAR), histórico completo de fatos relevantes com timestamp original e preços ajustados — com check automático de completude (≥ 40 trimestres sem lacuna) que marca cada ativo como `histórico_completo`.
+- **Backfill histórico exaustivo** (`PROJETO...md` §4.2, alvo de 10 anos): todos os trimestres (ITR/DFP da CVM ou 10-Q/10-K do EDGAR), histórico completo de fatos relevantes com timestamp original e preços ajustados — **incluindo período pré-IPO** (prospecto, notícias, judicial, diários) para listagens recentes. O check automático de completude gera a **Ficha de Consistência de Dados** por empresa (período coberto e lacunas por fonte) — que informa, não bloqueia.
 - **Backfill econômico** (`PROJETO...md` §4.3): camada global com **30 anos** (FMI, Banco Mundial, OCDE, BIS, FRED) carregada no bootstrap; painéis setoriais específicos com **10 anos** carregados junto com cada Dossiê Setorial (BCB/SGS, IBGE, ONS, CONAB, ANP...), com pesos setorial > doméstico > global registrados por série.
 - Pipeline de normalização → `SignalDocument`, entity linking com dicionário inicial de ~30 tickers, dedup.
 - **Entregável verificável**: rodada diária automática populando o banco; relatório de qualidade de dados por e-mail, incluindo o painel de completude histórica por ativo.
@@ -61,6 +61,7 @@ flowchart LR
 
 ### Sprint 7–8 — Backtest e observabilidade
 - Simulador de replay histórico com corte temporal rígido (detalhe na §4.3).
+- **Camada sistemática de fatores** (§5.1 do projeto): implementação regra-baseada (valor, momentum, qualidade sobre 100+ ativos da B3 com dados CVM/preço), backtest próprio completo (fatores têm point-in-time real — é o livro mais backtestável do fundo) e tese única de estratégia versionada.
 - Painel do gestor (posições, teses, P&L, aprovações pendentes) + alertas (Telegram/e-mail).
 - Runbooks de operação e o checklist de go-live (§6).
 - **Entregável**: relatório de backtest do Gate 1.
@@ -90,7 +91,7 @@ Para *qualquer* sequência de propostas e *qualquer* estado de portfólio:
 - Toda ordem aprovada tem stop definido.
 - Toda ordem pertence a um livro/horizonte (§5.1 do projeto) e respeita o orçamento de risco daquele livro; posição sem livro é rejeitada.
 - Nenhuma ordem é aprovada para ativo cujo setor não tem Dossiê Setorial em estado `aprovado` e dentro da validade.
-- Nenhuma ordem é aprovada para ativo sem estado `histórico_completo` (≥ 10 anos / 40 trimestres + fatos relevantes íntegros, janela móvel em dia).
+- Toda ordem referencia tese com **Ficha de Consistência de Dados** anexada e vigente (§4.2 — o histórico não bloqueia, mas toda decisão registra com que dados foi tomada).
 - Ordem com tamanho > X% do volume médio diário nunca é aprovada.
 - O motor é determinístico: mesma entrada → mesma saída, sempre.
 
@@ -179,7 +180,7 @@ Paper aprovado ≠ pronto. Dinheiro real tem atritos que paper não mostra (fill
 - [ ] Limites de risco e alçadas revisados e assinados pelo gestor humano.
 - [ ] Camada de calibração e meta-modelo em produção com monitoramento de Brier ativo; regra de conflito assimétrica (reduzir/vetar, nunca aumentar) implementada e testada no OMS.
 - [ ] 100% dos ativos do universo com Dossiê Setorial `aprovado`, dentro da validade e com aprovação humana registrada.
-- [ ] 100% dos ativos do universo com `histórico_completo`: ≥ 10 anos de trimestres sem lacuna, arquivo integral de fatos relevantes e janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente).
+- [ ] 100% dos ativos do universo com **Ficha de Consistência de Dados** gerada e atualizada (incluindo coleta pré-IPO para listagens recentes), com a janela móvel de atualização funcionando (novo ITR incorporado no trimestre corrente e refletido na ficha).
 - [ ] Base econômica das duas camadas (§4.3) carregada: painéis setoriais de todos os dossiês aprovados com 10 anos + série global completa com **30 anos**, com check de frescor ativo (série global vencida → Agente Macro degrada para "regime indefinido").
 - [ ] 100% das empresas do universo com peer set coberto (§4.4) e, onde houver nova frente de negócio, Motor 2 criado com dossiê do setor novo aprovado ou tese com desconto de confiança registrado (§4.5).
 - [ ] 100% das empresas do universo com mapa de fornecedores-chave registrado e monitoramento ativo dos críticos (§4.6), com revisão vinculada ao ciclo de ITR.

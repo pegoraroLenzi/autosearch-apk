@@ -19,6 +19,7 @@ Um fundo de investimento **AI-native**: a inteligência artificial não é uma f
 ### Princípios AI-native
 
 - **Toda informação vira sinal**: cada dado ingerido é normalizado, indexado (embeddings) e associado a um ou mais tickers.
+- **Subjetivo + objetivo (a chave do modelo)**: entender os cenários e **associar análises subjetivas** (leitura de contexto, história, estratégia, pessoas) **a análises objetivas** (dados, fatores, calibração estatística). Nenhuma das duas decide sozinha; o histórico e as bases servem à compreensão, não são fórmula.
 - **Decisão explicável**: nenhuma ordem é enviada sem uma tese escrita pelo agente, com as evidências que a sustentam.
 - **Humano no circuito (configurável)**: modos *autônomo*, *aprovação por alçada* (ordens acima de X exigem OK humano) e *somente sugestão*.
 - **Backtest antes de produção**: toda estratégia roda em simulação e paper trading antes de tocar dinheiro real.
@@ -145,11 +146,13 @@ Cada saída é um **sinal versionado e auditável**: `{agente, ticker, score, co
 
 Efeito prático: expandir o universo de ativos tem custo deliberado — cobrir um setor novo exige primeiro construir e aprovar a base teórica dele. É lentidão intencional: o sistema nunca opera o que não entende.
 
-### 4.2 Pré-requisito de profundidade histórica: mínimo de 10 anos (bloqueante)
+### 4.2 Base histórica de 10 anos: contexto obrigatório de coleta — não fator determinante
 
 > **Convenção do projeto:** salvo indicação explícita em contrário, "base histórica" significa sempre **10 anos**, em qualquer documento deste projeto — **exceto para dados globais** (economia mundial e séries internacionais da camada 2 do §4.3), cuja base histórica é sempre de **30 anos**.
 
-Segundo pré-requisito de entrada no universo analisável: **base histórica mínima de 10 anos por empresa**, com três componentes obrigatórios e completos:
+**Papel do histórico (decisão do gestor, Ponto 3 da revisão):** a base de 10 anos existe para o agente **entender o cenário real da empresa** — ela **não proíbe nem obriga nada**. A chave do modelo é compreender cenários e **associar análise subjetiva à análise objetiva**; o histórico serve à compreensão, não à elegibilidade.
+
+Meta de coleta por empresa — três componentes, buscados na maior profundidade que existir (alvo: 10 anos):
 
 | Componente | Conteúdo exigido | Fonte primária |
 |---|---|---|
@@ -159,11 +162,12 @@ Segundo pré-requisito de entrada no universo analisável: **base histórica mí
 
 **Por que 10 anos:** cobre mais de um ciclo econômico completo (no Brasil: recessão 2015–16, pandemia 2020, ciclos de juros de alta e de baixa), dá amostra suficiente para o walk-forward do backtest (calibração + validação fora da amostra), e permite ao agente comparar o comportamento da empresa em crise vs. bonança — inclusive a coerência histórica entre o que a empresa anunciou em fatos relevantes e o que entregou nos trimestres seguintes (insumo direto do Agente de Planejamento Estratégico).
 
-**Enforcement (mesmo padrão do §4.1):**
-- **Carga retroativa (backfill)** é etapa obrigatória do onboarding de cada ticker; um check automático de completude (≥ 40 trimestres sem lacuna + série de fatos relevantes íntegra + preços contínuos) muda o estado do ativo para `histórico_completo`.
-- Agentes não emitem sinal e o motor de risco não aprova ordem para ativo sem `histórico_completo` (invariante testada).
-- **IPOs e empresas com menos de 10 anos de listagem ficam fora do universo por padrão.** Exceção somente por aprovação humana explícita e documentada, com limite de posição reduzido — e o motivo registrado na tese.
-- A janela é **móvel**: a cada trimestre, o pipeline incorpora o novo ITR e os novos fatos relevantes; falha de atualização por 2 trimestres consecutivos rebaixa o ativo para fora do universo até regularizar.
+**Regras (transparência no lugar de bloqueio):**
+- **Backfill obrigatório e exaustivo:** o onboarding busca **tudo o que existir** nas fontes do projeto — **inclusive do período pré-IPO**: prospecto e documentos societários, notícias nacionais/regionais, judicial, diários oficiais, fornecedores. A empresa existia antes de listar; as nossas fontes também.
+- **Ficha de Consistência de Dados** por empresa: período coberto e lacunas **por fonte**, qualidade e frescor — injetada no contexto de todo agente que analisa a empresa e **anexada a toda tese**. Quem decide sabe exatamente com quanto histórico está decidindo; a consistência e o período dos dados são informação de primeira classe para o usuário e para os agentes.
+- **IPOs e listagens recentes podem entrar no universo** — com a coleta pré-IPO feita e a ficha deixando explícito o período disponível por fonte.
+- A janela é **móvel**: a cada trimestre, o pipeline incorpora o novo ITR e os novos fatos relevantes; falha de atualização é registrada na ficha (e degrada o frescor, visível ao comitê), não expulsa o ativo.
+- Histórico curto ou lacunoso **não bloqueia sinal nem ordem** — entra no comitê e no meta-modelo como qualquer outra evidência: a confiança dos sinais reflete a base disponível, e a tese registra a limitação.
 
 ### 4.3 Base de dados econômicos: duas camadas com pesos distintos (setorial: 10 anos · global: 30 anos)
 
@@ -280,8 +284,11 @@ Análises e posições são **separadas e estruturadas por horizonte temporal**,
 | **Médio prazo** | 3–18 meses | O ciclo do setor e a execução da estratégia estão a favor? | Painéis setoriais e de mercados atendidos, vento setorial do Macro, execução do guidance anual, desempenho relativo vs. peers | Semanal | 10–20% |
 | **Longo prazo** | 18 meses–5 anos | A vantagem competitiva vai se expandir? | Fundamentalista estrutural, VRIO/moat, Motor 2 maturando, radar de disrupção, qualidade de alocação de capital | Mensal | 20–30% |
 | **Retenção geral (núcleo)** | indefinida ("hold") | Esta empresa merece ficar na carteira independentemente do ciclo? | Moat comprovado + execução consistente nos 10 anos de histórico + posição relativa dominante sustentada; giro mínimo | Trimestral (revisão profunda) | 40–60% |
+| **Camada sistemática (breadth)** | rebalanceamento mensal | Os fatores clássicos pagam no agregado? | Valor, momentum e qualidade calculados de preço + fundamentos CVM sobre **100+ ativos da B3** — regra-baseada, sem análise individual por agentes | Mensal (rebalance) | 10–20% |
 
 \* Percentuais do PL alocáveis por livro — parâmetros do motor de risco, calibrados no backtest e revisados pelo gestor humano; a soma dos limites pode exceder 100% porque são tetos, não alocações fixas.
+
+**Nota sobre a camada sistemática (cobertura em dois níveis — Ponto 3 da revisão, decidido pelo gestor):** é a resposta a Grinold-Kahn (IR ≈ IC × √breadth) — compra amplitude barata onde profundidade não é necessária, enquanto os demais livros concentram a profundidade. Por ser regra-baseada, **não passa pelos agentes nem exige os pré-requisitos do §4.1** (não é análise de empresa — é exposição a fatores com décadas de evidência acadêmica; a "base teórica do setor" dela é a própria literatura de Fama-French/Jegadeesh-Titman da fundamentação). Tem **uma tese única de estratégia** (o documento da metodologia de fatores, versionado) em vez de teses por ativo, e obedece ao mandato (long-only: fatores implementados por tilts comprados, com caixa como neutro).
 
 Regras da estrutura temporal:
 
@@ -373,7 +380,8 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 - `supply_chain` — relações empresa↔fornecedor (§4.6): criticidade (participação no custo, single-source, prazo de substituição), tipo de cobertura do fornecedor e vínculo aos sinais antecedentes gerados; revisada a cada ITR.
 - `legal_cases` — litígios por empresa (CNPJ): tipo (trabalhista, fiscal, cível, regulatório, societário, ambiental), polo (autora/ré), fase, valor da causa, andamentos e desfecho — com agregados por tipo/período (o **fluxo de novas ações** é o sinal: salto anormal de ações trabalhistas antecipa problema operacional antes do balanço) e **cruzamento com as provisões e contingências das notas explicativas** (empresa provisionando muito menos que o passivo judicial observado é red flag do Agente Fundamentalista).
 - `sector_dossiers` — dossiês setoriais versionados (conteúdo, bibliografia, estado de aprovação, validade) — pré-requisito de análise (§4.1).
-- `fundamentals_quarterly` — demonstrações trimestrais normalizadas por ativo (≥ 40 trimestres, §4.2), com check de completude.
+- `fundamentals_quarterly` — demonstrações trimestrais normalizadas por ativo (alvo: 40 trimestres, §4.2; período real registrado na ficha de consistência).
+- `data_coverage` — **Ficha de Consistência de Dados** por empresa (§4.2): período coberto, lacunas, qualidade e frescor por fonte; injetada no contexto dos agentes e anexada às teses.
 - `material_facts` — arquivo integral de fatos relevantes por ativo (≥ 10 anos, com timestamp original), vinculado aos `signal_documents`.
 - `econ_series` — séries econômicas das duas camadas do §4.3 (setoriais: 10 anos; globais: 30 anos), com fonte, frequência, peso e check de frescor.
 - `signal_documents` — todo conteúdo ingerido, normalizado, com vínculo a ativos.
@@ -439,7 +447,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 Pipeline de ingestão (market data + notícias + fatos relevantes CVM/EDGAR), modelo de dados, 2 agentes (Fundamentalista e Sentimento), relatório diário por e-mail. *Nenhuma ordem — só leitura e sinais.*
 
 **Fase 2 — Comitê e simulação (4–6 semanas)**
-Agentes Técnico e Macro, Agente PM com teses escritas, motor de risco, backtest com replay histórico, início do paper trading via Alpaca.
+Agentes Técnico e Macro, Agente PM com teses escritas, motor de risco, backtest com replay histórico, **camada sistemática de fatores (§5.1, cobertura em dois níveis)**, início do paper trading via Alpaca.
 
 **Fase 3 — Sinais alternativos (4 semanas)**
 Integração de provedor licenciado de dados LinkedIn/Glassdoor, Agente de Pessoas e de Concorrência, monitor intraday orientado a eventos.
