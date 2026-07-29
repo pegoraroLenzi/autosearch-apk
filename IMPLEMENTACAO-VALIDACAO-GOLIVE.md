@@ -14,8 +14,8 @@ Três regras que governam toda a implementação:
 
 ```mermaid
 flowchart LR
-    S1[Sprint 1-3<br/>Dados e sinais] --> S2[Sprint 4-6<br/>Comitê + risco]
-    S2 --> S3[Sprint 7-8<br/>Backtest + execução paper]
+    S1[Sprint 1-4<br/>Dados e ingestão] --> S2[Sprint 5-7<br/>Agentes + comitê + risco]
+    S2 --> S3[Sprint 8-10<br/>Execução paper + backtest]
     S3 --> G1{{Gate 1<br/>Backtest aprovado}}
     G1 --> PT[Paper trading<br/>6 meses]
     PT --> G2{{Gate 2<br/>Paper aprovado}}
@@ -27,44 +27,47 @@ flowchart LR
 
 ## 2. Plano de implementação (sprints de 2 semanas)
 
-### Sprint 1–2 — Fundação de dados
+> **Re-sequenciado (Ponto 7 da revisão, decidido pelo gestor): dados primeiro.** A ingestão é ~60% do esforço real do projeto (entity linking por CNPJ, diários sem feed, PDFs de notas explicativas, NLP em português); os Sprints 1–4 são quase inteiramente dados, e os agentes só entram no Sprint 5 — sobre dados já limpos e medidos. O "agente" da fase inicial é um relatório simples em cima de dados confiáveis: o valor nasce da limpeza. **Regra de infraestrutura:** usar projetos públicos existentes primeiro — **Querido Diário** (Open Knowledge Brasil, diários oficiais municipais), **DataJud/Comunica CNJ** (judicial), **dados abertos CVM** (ITR/DFP estruturados) — com raspadores próprios onde forem necessários ou onde comprovadamente otimizarem resultados (decisão caso a caso, registrada).
+
+### Sprint 1–2 — Fundação de dados e núcleo de coleta
 - Repositório, CI/CD (lint, testes, build), infraestrutura como código (Terraform), ambientes `dev` e `prod` separados desde o dia 1.
 - Modelo de dados no PostgreSQL + migrações versionadas (Alembic).
-- Coletores: market data EOD (fonte gratuita) + fatos relevantes CVM/EDGAR + feeds de notícias **nacionais e regionais** (portais regionais definidos pelo mapa de sede/operações de cada companhia, com critério de captura amplo: empresa, mercado, economia, regulamentação/legislação) + **portais oficiais de governo** (federal: gov.br/Agência Brasil/DOU; estadual e municipal conforme sede e operações de cada companhia do universo, cadastradas no onboarding) + **canais oficiais de cada companhia** (site institucional e de RI com detecção de mudança/diff, releases, apresentações) + **portais de notificação judicial** (CNJ/DJEN e tribunais por CNPJ — empresa e peers; agregador comercial como acelerador se o custo couber) + **radar de tecnologia/inovação por setor** (patentes INPI/USPTO, funding Crunchbase, imprensa tech como secundária).
-- **Mapa de receita por geografia** no onboarding (`PROJETO...md` §4.3 camada 1b): extração das notas explicativas e RI; mercados com ≥ 10% da receita ganham painel econômico próprio (10 anos) e assinatura de notícias/atos oficiais daquele mercado; revisão a cada ITR.
-- **Classificador de relevância e canal de impacto** (`PROJETO...md` §3.2 item 4): tipo de relação (direta/setor/economia/regulação), tickers afetados via setor e geografia, e score que prioriza a fila dos agentes — com eval próprio (golden set de notícias rotulado) desde o primeiro sprint, pois é ele que segura o ruído da captura ampla.
-- **Backfill histórico exaustivo** (`PROJETO...md` §4.2, alvo de 10 anos): todos os trimestres (ITR/DFP da CVM ou 10-Q/10-K do EDGAR), histórico completo de fatos relevantes com timestamp original e preços ajustados — **incluindo período pré-IPO** (prospecto, notícias, judicial, diários) para listagens recentes. O check automático de completude gera a **Ficha de Consistência de Dados** por empresa (período coberto e lacunas por fonte) — que informa, não bloqueia.
-- **Backfill econômico** (`PROJETO...md` §4.3): camada global com **30 anos** (FMI, Banco Mundial, OCDE, BIS, FRED) carregada no bootstrap; painéis setoriais específicos com **10 anos** carregados junto com cada Dossiê Setorial (BCB/SGS, IBGE, ONS, CONAB, ANP...), com pesos setorial > doméstico > global registrados por série.
-- **Arquivo point-in-time perpétuo desde o primeiro dia de coleta** (decisão do Ponto 4): todo documento arquivado com timestamp de captura em S3/Parquet, nada descartado — nem o que o classificador julgar irrelevante. É o ativo que viabiliza o backtest futuro das fontes sem histórico comercial.
-- Pipeline de normalização → `SignalDocument`, entity linking com dicionário inicial de ~30 tickers, dedup.
-- **Entregável verificável**: rodada diária automática populando o banco; relatório de qualidade de dados por e-mail, incluindo o painel de completude histórica por ativo.
+- **Golden set de entity linking como o PRIMEIRO eval do projeto**: CNPJ ↔ razões sociais ↔ nomes de pregão ↔ apelidos de imprensa, rotulado por humano — se o linking erra, todos os sinais a jusante estão errados e nenhum eval de agente detecta. Nenhum coletor entra em produção sem passar por ele.
+- Coletores do núcleo: market data EOD, fatos relevantes CVM/EDGAR, feeds de notícias nacionais.
+- **Arquivo point-in-time perpétuo desde o primeiro dia de coleta** (decisão do Ponto 4): todo documento arquivado com timestamp de captura em S3/Parquet, nada descartado.
+- Pipeline de normalização → `SignalDocument`, entity linking (validado contra o golden set), dedup.
+- **Entregável verificável**: rodada diária automática populando o banco; relatório de qualidade de dados por e-mail; eval de entity linking passando.
 
-### Sprint 3 — Primeiros agentes
-- **Dossiês Setoriais do universo inicial** (`PROJETO...md` §4.1): pipeline de curadoria (agente pesquisador + fontes do padrão da `FUNDAMENTACAO-TEORICA.md` §5.2), revisão e aprovação humana, versionamento no banco. Nenhum ticker é ativado para análise sem dossiê `aprovado` — isso dimensiona o universo inicial (menos setores, mais profundidade).
-- **Peer sets do universo inicial** (`PROJETO...md` §4.4): concorrentes relevantes de cada empresa identificados no dossiê e onboardados com cobertura espelhada (integral para `investível`, adaptada e com lacunas documentadas para `referência`) — o custo real do universo é empresas × (1 + peers), o que reforça o dimensionamento conservador.
-- **Mapa de fornecedores-chave** (`PROJETO...md` §4.6): extração das notas explicativas/RI, registro de criticidade (custo, single-source, prazo de substituição) e ativação da cobertura adaptada de cada fornecedor crítico (judicial, pessoas, notícias da praça, preço do insumo), com revisão a cada ITR.
+### Sprint 3–4 — Ingestão completa, backfills e qualidade
+- Coletores restantes: notícias **regionais** (mapa de sede/operações), **portais oficiais de governo** nas 3 esferas (federal direto; estadual/municipal via **Querido Diário** + raspadores próprios onde necessário), **canais oficiais das companhias** (site/RI com diff), **judicial** (DataJud/Comunica CNJ por CNPJ — empresa e peers; agregador comercial se o custo couber), **radar de tecnologia/inovação** (INPI/USPTO, Crunchbase).
+- **Classificador de relevância e canal de impacto** (`PROJETO...md` §3.2 item 4) com eval próprio (golden set de notícias rotulado) — é ele que segura o ruído da captura ampla.
+- **Backfill histórico exaustivo** (`PROJETO...md` §4.2, alvo de 10 anos, incluindo pré-IPO) e **backfill econômico** (§4.3: global 30 anos no bootstrap; painéis setoriais 10 anos com cada dossiê) → **Fichas de Consistência de Dados** geradas por empresa.
+- **Dossiês Setoriais do universo inicial** (§4.1) com curadoria e aprovação humana; **peer sets** (§4.4); **mapa de fornecedores-chave** (§4.6); **mapa de receita por geografia** (§4.3-1b).
+- **Entregável**: relatório diário "burro" mas confiável — todos os dados do universo inicial limpos, linkados, arquivados e com ficha de consistência; nenhum agente ainda.
+
+### Sprint 5 — Primeiros agentes (sobre dados limpos)
 - Índice vetorial (pgvector) + memória por ativo.
 - Agente Fundamentalista e Agente de Sentimento com **saída estruturada validada por schema** (score, confiança, evidências com IDs de documentos reais).
 - Tabela `agent_runs` com custo, latência e prompt versionado.
 - **Mecanismo de pré-registro** (`predictions`, §4.5): todo sinal relevante grava previsão falsificável com prazo desde o primeiro sinal emitido; apuração automática no vencimento.
-- **Entregável**: sinais diários auditáveis para o universo inicial; primeiro relatório diário.
+- **Entregável**: sinais diários auditáveis para o universo inicial; primeiro relatório diário com análise.
 
-### Sprint 4–5 — Comitê e motor de risco
+### Sprint 6–7 — Comitê, decisão e motor de risco
 - Agente Técnico/Quant e Agente Macro.
 - Agente PM: debate adversarial e tese escrita versionada (geração de evidência — o PM não dimensiona posição, ver §5.2 do projeto).
-- **Camada de calibração + meta-modelo** (`PROJETO...md` §5.2): mapeamento score→probabilidade por regressão isotônica, Brier/curvas de confiabilidade por agente e setor, shrinkage para agentes sem histórico; meta-modelo em modo cold start (pesos iguais + encolhimento de tamanhos), com verificação de que as features representam os sinais qualitativos das bases (requisito de mandato).
-- **Motor de risco como biblioteca pura e determinística** (sem LLM, sem I/O): entrada = proposta + estado do portfólio; saída = aprovada/ajustada/vetada + motivo. Essa pureza é o que o torna 100% testável.
-- **Modelo de risco de fatores + stress diário** (Ponto 5, decidido): estimação dos betas por ativo (mercado, DI, BRL, commodities, estilo), limites sobre exposições líquidas por fator no motor, e stress test diário contra cenários históricos fixos com gatilho automático de modo só-redução quando a perda simulada excede o drawdown do mandato.
+- **Camada de calibração + meta-modelo** (`PROJETO...md` §5.2): regressão isotônica, Brier/curvas por agente e setor, shrinkage; meta-modelo em cold start (pesos iguais + encolhimento), com verificação de que as features representam os sinais qualitativos das bases (requisito de mandato).
+- **Motor de risco como biblioteca pura e determinística** (sem LLM, sem I/O), 100% testável.
+- **Modelo de risco de fatores + stress diário** (Ponto 5): betas por ativo, limites sobre exposições líquidas por fator, stress contra cenários históricos com gatilho de só-redução.
 - **Entregável**: pipeline completo até "propostas de ordem" — sem executar nada.
 
-### Sprint 6 — OMS e adaptador de corretora (paper)
+### Sprint 8 — OMS e adaptador de corretora (paper)
 - `BrokerAdapter` com implementação Alpaca **paper** + implementação `FakeBroker` (simulador local para testes).
 - OMS: estado de ordens, fills parciais, reconciliação diária, kill switch manual.
 - **Entregável**: ciclo completo rodando em paper trading, ponta a ponta.
 
-### Sprint 7–8 — Backtest e observabilidade
-- Simulador de replay histórico com corte temporal rígido (detalhe na §4.3).
-- **Camada sistemática de fatores** (§5.1 do projeto): implementação regra-baseada (valor, momentum, qualidade sobre 100+ ativos da B3 com dados CVM/preço), backtest próprio completo (fatores têm point-in-time real — é o livro mais backtestável do fundo) e tese única de estratégia versionada.
+### Sprint 9–10 — Backtest, camada sistemática e observabilidade
+- Simulador de replay histórico com corte temporal rígido (detalhe na §4.2 — só fontes com point-in-time real).
+- **Camada sistemática de fatores** (§5.1 do projeto): implementação regra-baseada (valor, momentum, qualidade sobre 100+ ativos da B3), backtest próprio completo e tese única de estratégia versionada.
 - Painel do gestor (posições, teses, P&L, aprovações pendentes) + alertas (Telegram/e-mail).
 - Runbooks de operação e o checklist de go-live (§6).
 - **Entregável**: relatório de backtest do Gate 1.
@@ -227,14 +230,14 @@ E o ciclo de melhoria contínua: atribuição de performance por agente (mensal)
 
 | Período | Marco |
 |---|---|
-| Semanas 1–16 | Sprints 1–8 (construção + backtest) |
-| Semana ~16 | **Gate 1** — backtest aprovado |
-| Semanas 17–42 | Paper trading (6 meses — 2 temporadas de resultados) |
-| Semana ~42 | **Gate 2** — paper aprovado (incl. track record prospectivo de 2 temporadas) |
-| Semanas 43–51 | Piloto com capital simbólico |
-| Semana ~51 | **Gate 3 — go-live pleno** |
+| Semanas 1–20 | Sprints 1–10 (construção, dados primeiro + backtest) |
+| Semana ~20 | **Gate 1** — backtest aprovado |
+| Semanas 21–46 | Paper trading (6 meses — 2 temporadas de resultados) |
+| Semana ~46 | **Gate 2** — paper aprovado (incl. track record prospectivo de 2 temporadas) |
+| Semanas 47–55 | Piloto com capital simbólico |
+| Semana ~55 | **Gate 3 — go-live pleno** |
 
-~12 meses do primeiro commit ao capital alvo, sendo cerca de dois terços em validação — proporção intencional (decisão do Ponto 4): o paper trading estendido carrega o peso que o backtest não pode carregar nas fontes sem histórico.
+~13 meses do primeiro commit ao capital alvo, sendo cerca de dois terços em validação — proporção intencional (decisões dos Pontos 4 e 7): dados limpos antes de agentes, e o paper trading estendido carrega o peso que o backtest não pode carregar nas fontes sem histórico.
 
 ---
 
