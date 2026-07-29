@@ -416,6 +416,8 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 - `sector_dossiers` — dossiês setoriais versionados (conteúdo, bibliografia, estado de aprovação, validade) — pré-requisito de análise (§4.1).
 - `fundamentals_quarterly` — demonstrações trimestrais normalizadas por ativo (alvo: 40 trimestres, §4.2; período real registrado na ficha de consistência).
 - `data_coverage` — **Ficha de Consistência de Dados** por empresa (§4.2): período coberto, lacunas, qualidade e frescor por fonte; injetada no contexto dos agentes e anexada às teses.
+- `sector_taxonomy` — taxonomia setorial completa da B3: **todas** as empresas listadas, classificadas por setor/subsetor, atualizada periodicamente (§12 — universo é configuração, não código).
+- `universe_config` — configuração versionada do universo ativo (setores e empresas habilitados, âncoras, estado de onboarding de cada uma); toda mudança é registro auditável, sem deploy.
 - `material_facts` — arquivo integral de fatos relevantes por ativo (≥ 10 anos, com timestamp original), vinculado aos `signal_documents`.
 - `econ_series` — séries econômicas das duas camadas do §4.3 (setoriais: 10 anos; globais: 30 anos), com fonte, frequência, peso e check de frescor.
 - `signal_documents` — todo conteúdo ingerido, normalizado, com vínculo a ativos.
@@ -478,7 +480,12 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 
 **TCO por empresa coberta (Ponto 9, decidido):** o custo total de propriedade por empresa — licenças de dados rateadas + tokens de LLM + infraestrutura + horas humanas estimadas — é métrica acompanhada no **relatório mensal**, contra um orçamento-teto definido pelo gestor. Expandir o universo ou adicionar fonte passa a ter preço visível antes da decisão.
 
-**Universo inicial mínimo viável (mitigação §14.1, decidida):** o universo de partida é definido **antes do Sprint 1** — na ordem de **15–20 empresas em 3–4 setores** — junto com o teto de custo mensal total do sistema. O TCO nasce controlado em vez de descoberto; expansão de universo é decisão explícita contra o teto, nunca acúmulo.
+**Universo inicial mínimo viável (mitigação §14.1, decidida e detalhada):** o universo de partida é da ordem de **15–20 empresas em 3–4 setores**, selecionadas por **seis filtros objetivos** (decisão do gestor): (1) negligência analítica — cobertura de sell-side baixa (≤ ~5 analistas); (2) pegada física/regional identificável — para as fontes exóticas terem o que dizer; (3) liquidez mínima compatível com a regra de saída (≤ 5 pregões a ≤ 10% do ADV); (4) dossiê setorial viável com dados públicos ricos; (5) diversidade de fatores entre os setores; (6) exclusões da fase 1: bancos/seguradoras, empresas em recuperação judicial, estatais com preço dominado por política.
+
+- **Setores candidatos ao screening** (decisão do gestor): **energia elétrica e saneamento** (ANEEL/ONS, bond-proxy), **agronegócio e alimentos** (CONAB/clima/commodities — diversifica contra juros), **saúde e educação** (ANS/DATASUS/INEP, defensivo doméstico) e **mercado automotivo** (montadoras/autopeças/locadoras — ANFAVEA/FENABRAVE/DENATRAN públicos, cadeia de fornecedores densa que exercita o §4.6).
+- **Âncoras de calibração:** 2–3 large caps líquidas dos mesmos setores entram como grupo de controle — validam se os agentes chegam a conclusões sensatas onde o consenso é conhecido, e medem se o edge é realmente maior nas negligenciadas.
+- **Universo é configuração, não código** (requisito do gestor): a **taxonomia setorial completa da B3** — todas as empresas listadas, classificadas por setor — vive no banco desde o Sprint 1; o universo ativo é uma **configuração versionada** sobre ela. Ativar, trocar ou adicionar setor/empresa em qualquer momento é ação de configuração (sujeita apenas aos pré-requisitos de escopo: dossiê aprovado, onboarding, ficha de consistência) — nunca exige mudança de código ou deploy.
+- **Política gratuito-primeiro e teto de custo** (decisão do gestor): a fase de construção/validação usa **exclusivamente fontes gratuitas** — CVM dados abertos, B3, BCB/SGS, IBGE, ANEEL, ONS, ANS, DATASUS, INEP, CONAB, ANFAVEA/FENABRAVE, Querido Diário, DataJud/Comunica, GDELT, Wayback/Common Crawl — e infra mínima. Fonte paga só entra se (a) não houver alternativa gratuita e (b) a atribuição do Ponto 9 provar que paga. O custo inevitável é LLM: mitigado por cadência adaptativa, cache e batch, com **teto de R$ 1.000/mês** na fase de construção, revisável a cada gate.
 
 ---
 
