@@ -104,7 +104,7 @@ flowchart TB
 3. **Entity linking**: NER + dicionário de empresas para mapear "a varejista de Cascavel" → ticker correto; um documento pode afetar vários tickers (empresa + concorrentes).
 4. **Classificador de relevância e canal de impacto** (a contrapartida necessária da captura ampla): todo documento recebe (a) **tipo de relação** — menção direta à empresa · setor/concorrentes · **cadeia de suprimentos (fornecedores-chave)** · economia/mercado · regulamentação/legislação · **litígios/judicial** · **tecnologia/disrupção**; (b) **direção do impacto** — direto ou indireto, e quais tickers afeta (via setor e via mapa geográfico de sede/operações — ex.: lei estadual nova afeta as empresas com operação naquele estado); (c) **score de relevância** que prioriza a fila dos agentes; (d) **datação dupla — evento vs. decisão**: além da data de publicação, o classificador estima a **data do fato gerador**. Uma inauguração de fábrica noticiada hoje materializa uma decisão de capital tomada anos atrás — diz pouco sobre o momento atual da companhia; um anúncio de investimento aprovado hoje é decisão presente. Os agentes leem o "momento da companhia" pelo **fluxo de decisões recentes**, não pela materialização de decisões antigas, e a memória por ativo mantém a **linha do tempo decisão → anúncio → execução → entrega** de cada movimento relevante (é essa linha que alimenta o histórico promessa×entrega do Agente de Planejamento Estratégico). Nada é descartado — documento de baixa relevância fica indexado e pesquisável (a memória por ativo o recupera se virar padrão), mas só o que passa do limiar entra no ciclo diário de análise. O limiar é calibrado pela atribuição de performance: se sinais de origem regional/regulatória provarem valor, o peso sobe.
 5. **Deduplicação** por hash semântico (a mesma notícia replicada em 10 portais conta uma vez).
-6. **Armazenamento duplo**: bruto no data lake (reprocessável) e curado no banco relacional + índice vetorial para busca semântica pelos agentes.
+6. **Armazenamento duplo com arquivo point-in-time perpétuo** (decisão do Ponto 4): bruto no data lake (reprocessável) e curado no banco relacional + índice vetorial para busca semântica pelos agentes. **Todo documento coletado é arquivado com timestamp de captura e nunca descartado** — inclusive o que o classificador julga irrelevante hoje. É o ativo que torna possível, em 2–3 anos, backtestar as fontes que não têm histórico comercial (diários municipais, imprensa regional, reviews): não dá para arquivar retroativamente.
 
 ---
 
@@ -390,6 +390,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 - `orders` / `fills` / `positions` — OMS.
 - `portfolio_snapshots` — foto diária para P&L e atribuição de performance.
 - `agent_runs` — log de cada execução de agente (prompt, custo, latência) para auditoria e melhoria.
+- `predictions` — pré-registros de previsões falsificáveis (§10 item 2): sinal de origem, previsão, prazo, desfecho apurado — o track record prospectivo por agente, fonte e setor.
 
 ---
 
@@ -412,10 +413,11 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 
 ## 10. Backtesting e validação
 
-1. **Replay histórico**: reprocessar o pipeline com dados de datas passadas, com corte temporal rígido (o agente só vê o que existia até aquele dia — cuidado com look-ahead bias inclusive no conhecimento do LLM).
-2. **Paper trading** por no mínimo 60–90 dias antes de capital real.
-3. **Métricas**: Sharpe, Sortino, drawdown máximo, hit rate por agente (qual agente acerta mais?), custo de transação simulado.
-4. **Atribuição por agente**: medir a contribuição de cada tipo de sinal ao resultado — é o mecanismo de melhoria contínua do comitê.
+1. **Replay histórico — só onde há point-in-time real** (decisão do Ponto 4): o backtest walk-forward roda apenas sobre fontes com arquivo histórico íntegro (preços, fundamentos CVM, fatos relevantes, sentimento licenciado com histórico); corte temporal rígido (o agente só vê o que existia até aquele dia — cuidado com look-ahead bias inclusive no conhecimento do LLM). Fontes sem point-in-time (imprensa regional, diários, reviews, fornecedores) **não entram no backtest** — são validadas prospectivamente (item 2) até o arquivo próprio (§3.2 item 6) acumular história.
+2. **Validação prospectiva com pré-registro (obrigatória)**: todo sinal relevante grava, **antes do desfecho**, uma previsão falsificável com prazo (ex.: "este sinal implica surpresa negativa no ITR de X em ≤ 2 trimestres"), armazenada em `predictions`. O sistema acumula um track record prospectivo auditável por agente, fonte e setor — imune à racionalização retroativa, e é o que alimenta a calibração do §5.2 com dados limpos.
+3. **Paper trading** por no mínimo **6 meses** antes de capital real (decisão do Ponto 4: cobre 2 temporadas de resultados completas — o paper carrega o peso de validação que o backtest não pode carregar nas fontes sem histórico point-in-time).
+4. **Métricas**: Sharpe, Sortino, drawdown máximo, hit rate por agente (qual agente acerta mais?), custo de transação simulado.
+5. **Atribuição por agente**: medir a contribuição de cada tipo de sinal ao resultado — é o mecanismo de melhoria contínua do comitê.
 
 ---
 
@@ -453,7 +455,7 @@ Agentes Técnico e Macro, Agente PM com teses escritas, motor de risco, backtest
 Integração de provedor licenciado de dados LinkedIn/Glassdoor, Agente de Pessoas e de Concorrência, monitor intraday orientado a eventos.
 
 **Fase 4 — Capital real (contínuo)**
-Após 60–90 dias de paper trading com métricas aceitáveis: capital próprio pequeno, alçadas de aprovação humana ativas, painel do gestor, atribuição de performance por agente e ciclo de melhoria contínua.
+Após 6 meses de paper trading com métricas aceitáveis: capital próprio pequeno, alçadas de aprovação humana ativas, painel do gestor, atribuição de performance por agente e ciclo de melhoria contínua.
 
 ---
 

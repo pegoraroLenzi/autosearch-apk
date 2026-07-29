@@ -17,7 +17,7 @@ flowchart LR
     S1[Sprint 1-3<br/>Dados e sinais] --> S2[Sprint 4-6<br/>Comitê + risco]
     S2 --> S3[Sprint 7-8<br/>Backtest + execução paper]
     S3 --> G1{{Gate 1<br/>Backtest aprovado}}
-    G1 --> PT[Paper trading<br/>60-90 dias]
+    G1 --> PT[Paper trading<br/>6 meses]
     PT --> G2{{Gate 2<br/>Paper aprovado}}
     G2 --> PILOT[Piloto: capital simbólico<br/>30-60 dias]
     PILOT --> G3{{Gate 3<br/>Go-live pleno}}
@@ -35,6 +35,7 @@ flowchart LR
 - **Classificador de relevância e canal de impacto** (`PROJETO...md` §3.2 item 4): tipo de relação (direta/setor/economia/regulação), tickers afetados via setor e geografia, e score que prioriza a fila dos agentes — com eval próprio (golden set de notícias rotulado) desde o primeiro sprint, pois é ele que segura o ruído da captura ampla.
 - **Backfill histórico exaustivo** (`PROJETO...md` §4.2, alvo de 10 anos): todos os trimestres (ITR/DFP da CVM ou 10-Q/10-K do EDGAR), histórico completo de fatos relevantes com timestamp original e preços ajustados — **incluindo período pré-IPO** (prospecto, notícias, judicial, diários) para listagens recentes. O check automático de completude gera a **Ficha de Consistência de Dados** por empresa (período coberto e lacunas por fonte) — que informa, não bloqueia.
 - **Backfill econômico** (`PROJETO...md` §4.3): camada global com **30 anos** (FMI, Banco Mundial, OCDE, BIS, FRED) carregada no bootstrap; painéis setoriais específicos com **10 anos** carregados junto com cada Dossiê Setorial (BCB/SGS, IBGE, ONS, CONAB, ANP...), com pesos setorial > doméstico > global registrados por série.
+- **Arquivo point-in-time perpétuo desde o primeiro dia de coleta** (decisão do Ponto 4): todo documento arquivado com timestamp de captura em S3/Parquet, nada descartado — nem o que o classificador julgar irrelevante. É o ativo que viabiliza o backtest futuro das fontes sem histórico comercial.
 - Pipeline de normalização → `SignalDocument`, entity linking com dicionário inicial de ~30 tickers, dedup.
 - **Entregável verificável**: rodada diária automática populando o banco; relatório de qualidade de dados por e-mail, incluindo o painel de completude histórica por ativo.
 
@@ -45,6 +46,7 @@ flowchart LR
 - Índice vetorial (pgvector) + memória por ativo.
 - Agente Fundamentalista e Agente de Sentimento com **saída estruturada validada por schema** (score, confiança, evidências com IDs de documentos reais).
 - Tabela `agent_runs` com custo, latência e prompt versionado.
+- **Mecanismo de pré-registro** (`predictions`, §4.5): todo sinal relevante grava previsão falsificável com prazo desde o primeiro sinal emitido; apuração automática no vencimento.
 - **Entregável**: sinais diários auditáveis para o universo inicial; primeiro relatório diário.
 
 ### Sprint 4–5 — Comitê e motor de risco
@@ -113,6 +115,7 @@ LLMs não se validam com teste unitário. Cada agente tem uma **suíte de evals*
 
 ### 4.2 Backtest (Gate 1)
 
+- **Escopo honesto (Ponto 4 da revisão, decidido):** o backtest cobre apenas fontes com point-in-time real (preços, fundamentos CVM, fatos relevantes, sentimento licenciado). As fontes sem histórico (imprensa regional, diários, reviews, fornecedores) ficam de fora do Gate 1 e são validadas prospectivamente (pré-registro, §4.5) — o Gate 2 estendido carrega esse peso.
 - **Metodologia walk-forward**: nunca otimizar e medir no mesmo período. Ex.: calibrar em 2019–2022, validar em 2023–2025, em janelas rolantes.
 - **Proteções contra vieses**:
   - *Look-ahead*: corte temporal rígido — o replay só entrega documentos com timestamp ≤ dia simulado; prompts instruem o agente a ignorar conhecimento posterior, e o eval de fidelidade pega citações anacrônicas.
@@ -124,18 +127,23 @@ LLMs não se validam com teste unitário. Cada agente tem uma **suíte de evals*
   - Resultado não pode depender de < 5 trades ("um acerto de sorte").
 - **Anti-overfitting**: número limitado de rodadas de ajuste (registradas); se precisar de muitas iterações para "passar", o resultado é suspeito por definição.
 
-### 4.3 Paper trading (Gate 2) — 60 a 90 dias
+### 4.3 Paper trading (Gate 2) — 6 meses
 
-O backtest valida a lógica; o paper valida o **sistema vivo** (dados atrasam, APIs caem, mercado surpreende).
+O backtest valida a lógica; o paper valida o **sistema vivo** (dados atrasam, APIs caem, mercado surpreende). Duração de **6 meses** (decisão do Ponto 4): cobre 2 temporadas completas de resultados trimestrais — o mínimo para validar promessa×entrega, o classificador, a calibração e as fontes que o backtest não cobre.
 
 - Rodar o ciclo diário completo com ordens reais na conta paper da Alpaca, sem nenhuma intervenção manual no meio (intervenção = incidente a registrar).
 - **Critérios de aprovação**:
   - ≥ 95% dos dias com ciclo completo executado sem intervenção manual.
   - Zero violação de limite de risco; zero ordem sem tese vinculada.
   - Reconciliação OMS×corretora batendo 100% (divergência = bug bloqueante).
-  - Performance dentro da banda esperada pelo backtest (não precisa ganhar do mercado em 60 dias — precisa se comportar como previsto; desvio grande entre paper e backtest indica bias não tratado).
+  - Performance dentro da banda esperada pelo backtest (não precisa ganhar do mercado no período — precisa se comportar como previsto; desvio grande entre paper e backtest indica bias não tratado).
+  - **Track record prospectivo (§4.5) apurado nas 2 temporadas**: taxa de acerto e calibração (Brier) dos pré-registros dentro das metas por agente.
   - Custo de LLM por dia dentro do orçamento.
   - Todos os incidentes com causa-raiz documentada e corrigida.
+
+### 4.5 Validação prospectiva com pré-registro (contínua, começa no Sprint 3)
+
+Para as fontes e sinais sem backtest possível: **todo sinal relevante grava, antes do desfecho, uma previsão falsificável com prazo** (tabela `predictions` — sinal de origem, previsão, prazo, desfecho). Regras: previsão registrada é imutável; apuração automática no vencimento; racionalização retroativa é impossível por construção. O track record prospectivo por agente/fonte/setor alimenta a camada de calibração (§5.2 do projeto) e é critério formal do Gate 2.
 
 ### 4.4 Testes de resiliência e segurança
 
@@ -218,12 +226,12 @@ E o ciclo de melhoria contínua: atribuição de performance por agente (mensal)
 |---|---|
 | Semanas 1–16 | Sprints 1–8 (construção + backtest) |
 | Semana ~16 | **Gate 1** — backtest aprovado |
-| Semanas 17–29 | Paper trading (60–90 dias) |
-| Semana ~29 | **Gate 2** — paper aprovado |
-| Semanas 30–38 | Piloto com capital simbólico |
-| Semana ~38 | **Gate 3 — go-live pleno** |
+| Semanas 17–42 | Paper trading (6 meses — 2 temporadas de resultados) |
+| Semana ~42 | **Gate 2** — paper aprovado (incl. track record prospectivo de 2 temporadas) |
+| Semanas 43–51 | Piloto com capital simbólico |
+| Semana ~51 | **Gate 3 — go-live pleno** |
 
-~9 meses do primeiro commit ao capital alvo, sendo mais da metade em validação — proporção intencional para um sistema que opera dinheiro.
+~12 meses do primeiro commit ao capital alvo, sendo cerca de dois terços em validação — proporção intencional (decisão do Ponto 4): o paper trading estendido carrega o peso que o backtest não pode carregar nas fontes sem histórico.
 
 ---
 
