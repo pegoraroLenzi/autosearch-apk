@@ -119,7 +119,9 @@ flowchart TB
 3. **Entity linking**: NER + dicionário de empresas para mapear "a varejista de Cascavel" → ticker correto; um documento pode afetar vários tickers (empresa + concorrentes).
 4. **Classificador de relevância e canal de impacto** (a contrapartida necessária da captura ampla): todo documento recebe (a) **tipo de relação** — menção direta à empresa · setor/concorrentes · **cadeia de suprimentos (fornecedores-chave)** · economia/mercado · regulamentação/legislação · **litígios/judicial** · **tecnologia/disrupção**; (b) **direção do impacto** — direto ou indireto, e quais tickers afeta (via setor e via mapa geográfico de sede/operações — ex.: lei estadual nova afeta as empresas com operação naquele estado); (c) **score de relevância** que prioriza a fila dos agentes; (d) **datação dupla — evento vs. decisão**: além da data de publicação, o classificador estima a **data do fato gerador**. Uma inauguração de fábrica noticiada hoje materializa uma decisão de capital tomada anos atrás — diz pouco sobre o momento atual da companhia; um anúncio de investimento aprovado hoje é decisão presente. Os agentes leem o "momento da companhia" pelo **fluxo de decisões recentes**, não pela materialização de decisões antigas, e a memória por ativo mantém a **linha do tempo decisão → anúncio → execução → entrega** de cada movimento relevante (é essa linha que alimenta o histórico promessa×entrega do Agente de Planejamento Estratégico). Nada é descartado — documento de baixa relevância fica indexado e pesquisável (a memória por ativo o recupera se virar padrão), mas só o que passa do limiar entra no ciclo diário de análise. O limiar é calibrado pela atribuição de performance: se sinais de origem regional/regulatória provarem valor, o peso sobe.
 5. **Deduplicação** por hash semântico (a mesma notícia replicada em 10 portais conta uma vez).
-6. **Armazenamento duplo com arquivo point-in-time perpétuo** (decisão do Ponto 4): bruto no data lake (reprocessável) e curado no banco relacional + índice vetorial para busca semântica pelos agentes. **Todo documento coletado é arquivado com timestamp de captura e nunca descartado** — inclusive o que o classificador julga irrelevante hoje. É o ativo que torna possível, em 2–3 anos, backtestar as fontes que não têm histórico comercial (diários municipais, imprensa regional, reviews): não dá para arquivar retroativamente.
+6. **Armazenamento duplo com arquivo point-in-time perpétuo** (decisão do Ponto 4): bruto no data lake (reprocessável) e curado no banco relacional + índice vetorial para busca semântica pelos agentes. **Todo documento coletado é arquivado com timestamp de captura e nunca descartado** — inclusive o que o classificador julga irrelevante hoje. É o ativo que torna possível, em 2–3 anos, backtestar as fontes que não têm histórico comercial (diários municipais, imprensa regional, reviews): não dá para arquivar retroativamente. Duas extensões (mitigação das fraquezas §14.1, decididas):
+   - **O arquivo começa antes do sistema:** na semana 1, scripts mínimos de coleta+arquivo das fontes efêmeras do universo inicial rodam antes de qualquer outro componente — o fosso começa a contar do primeiro dia do projeto, não do go-live.
+   - **Arqueologia de fontes:** onde existir point-in-time retroativo de terceiros neutros — snapshots datados do Internet Archive/Wayback Machine (sites de RI, portais), Common Crawl, GDELT (notícias com timestamp) — ele é importado para estender o arquivo para trás, com origem e qualidade registradas na ficha de consistência. Dado retroativo comum serve à **compreensão** (§4.2); só captura com carimbo da época — nossa ou de terceiro neutro — serve à **prova** (backtest).
 
 ---
 
@@ -339,6 +341,8 @@ Camada determinística (não-LLM, regras duras) que valida cada proposta:
 - VaR e drawdown máximo do portfólio; **circuit breaker**: acima do limite, o sistema só reduz risco, nunca aumenta.
 - **Modelo de risco de fatores (Ponto 5 da revisão, decidido):** cada posição é decomposta em exposições a fatores observáveis — mercado (Ibov), juros (DI), câmbio (BRL), commodities, valor/momentum/qualidade — por regressão das ações nos fatores (Barra simplificado, sem licença paga). O motor impõe **limites sobre as exposições líquidas do portfólio a cada fator**, além dos limites por nome/setor/livro: dez teses "independentes" que são a mesma aposta em juros ficam visíveis e limitadas. É a defesa estrutural contra o modo de falha do LTCM.
 - **Stress test diário com gatilho:** todo dia o portfólio é chocado contra cenários históricos fixos (2008, 2015–16 Brasil, 2020, choque de juros 2021–23 — construídos da base global de 30 anos do §4.3); o resultado sai no relatório diário. **Se a perda simulada em qualquer cenário exceder o drawdown máximo do mandato (20%), o motor entra em modo só-redução até revisão do gestor humano.**
+- **Limite de liquidez por posição (mitigação §14.1, decidida):** tamanho máximo de toda posição limitado pela liquidez real do papel — a saída completa deve ser executável em **≤ 5 pregões a ≤ 10% do volume diário médio**. Nunca ficamos presos numa small cap; o limite também dimensiona o teto de capital da estratégia por ativo.
+- **Stops executam intraday:** decisões novas são EOD, mas stops e gatilhos de saída já aprovados nas teses são monitorados continuamente e **executam no momento do disparo, sem esperar o fechamento** — a defesa da carteira não tem latência de ciclo.
 - Filtro de liquidez (não montar posição maior que X% do volume médio diário).
 - Alçadas: ordens acima de um valor exigem aprovação humana (notificação push/e-mail com a tese anexa).
 
@@ -351,6 +355,8 @@ O gestor humano é deliberadamente o ponto de controle — mas não pode ser pon
 1. **SLA de 48h úteis com default conservador:** todo item que exige aprovação humana (tese nova, exceção, promoção ao núcleo) espera até 48h úteis; sem resposta, **não executa** — a oportunidade expira e fica registrada com o motivo. Nada entra na carteira por omissão; só por decisão. **Reduções de risco, stops e gatilhos de saída já aprovados nas teses nunca esperam aprovação.**
 2. **Modo preservação em indisponibilidade:** detectada a ausência do gestor (sem interação por N dias, ou avisada), o sistema executa apenas o que defende a carteira — stops, reduções de risco, gatilhos de saída aprovados e o rebalance da camada sistemática — e **não abre nem aumenta posição alguma**. A carteira fica defendida, nunca expandida; tudo que expirar no período fica no registro para revisão na volta.
 3. **Orçamento de atenção — máximo 5 itens de decisão por dia:** o relatório diário prioriza por impacto × urgência e apresenta no máximo 5 itens que exigem decisão; o resto fica em fila visível com posição e envelhecimento. Aprovação no piloto automático é pior do que não aprovar — o limite protege a qualidade da atenção, e força o sistema a priorizar de verdade.
+4. **Protocolo de encerramento ordenado (mitigação da fraqueza nº 1, §14.1):** se a indisponibilidade do gestor passar de 3 meses, o modo preservação evolui para **liquidação gradual e ordenada para caixa** (respeitando os limites de participação por volume) — o sistema nunca fica órfão operando indefinidamente.
+5. **Revisão externa semestral da arquitetura:** uma vez por semestre, o mandato, a arquitetura e os limites passam por um revisor de fora do loop de operação — outra família de IA em modo red-team e/ou um par humano de confiança — com relatório registrado. É o único mecanismo que pega erro conceitual do próprio gestor: os verificadores internos pegam erros *dentro* do sistema, não *sobre* o sistema.
 
 ## 6. Execução — API de compra e venda
 
@@ -429,7 +435,7 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 |---|---|
 | Linguagem | Python (ecossistema financeiro + IA) |
 | Orquestração de pipelines | Prefect ou Airflow; eventos via fila (Redis Streams / SQS) |
-| Agentes de IA | Claude API (Agent SDK) — agentes com ferramentas, saída estruturada e citação de evidências; **segunda família de LLM obrigatória nos papéis adversariais** (§5.2, Ponto 8) |
+| Agentes de IA | Claude API (Agent SDK) — agentes com ferramentas, saída estruturada e citação de evidências; **segunda família de LLM obrigatória nos papéis adversariais** (§5.2, Ponto 8); **todo acesso a LLM passa por um `LLMAdapter` agnóstico de provedor** (mesmo padrão do `BrokerAdapter`), com a suíte de evals como teste de portabilidade — trocar de modelo é decisão, não crise |
 | Banco relacional | PostgreSQL |
 | Índice vetorial | pgvector (simples, mesmo Postgres) |
 | Data lake | S3 + Parquet |
@@ -472,6 +478,8 @@ O monitor intraday é orientado a eventos: um fato relevante ou notícia de alto
 
 **TCO por empresa coberta (Ponto 9, decidido):** o custo total de propriedade por empresa — licenças de dados rateadas + tokens de LLM + infraestrutura + horas humanas estimadas — é métrica acompanhada no **relatório mensal**, contra um orçamento-teto definido pelo gestor. Expandir o universo ou adicionar fonte passa a ter preço visível antes da decisão.
 
+**Universo inicial mínimo viável (mitigação §14.1, decidida):** o universo de partida é definido **antes do Sprint 1** — na ordem de **15–20 empresas em 3–4 setores** — junto com o teto de custo mensal total do sistema. O TCO nasce controlado em vez de descoberto; expansão de universo é decisão explícita contra o teto, nunca acúmulo.
+
 ---
 
 ## 13. Roadmap em fases
@@ -507,6 +515,8 @@ O espelho da seção de diferenciais (§1): no que somos fracos, das mais graves
 9. **A arquitetura é copiável.** Cinco dos seis diferenciais são ideias replicáveis; só o arquivo point-in-time e o track record auditado são fossos reais — e ambos começam em zero.
 
 **Síntese:** os pontos fortes amadurecem com o tempo (arquivo, calibração, track record); as fraquezas são máximas no início (cold start, custo relativo, edge não provado, fosso raso) — sustentadas por uma única pessoa. A estratégia é uma aposta de que atravessamos o período em que somos fracos até o período em que somos fortes; os gates, o paper de 6 meses e o capital simbólico existem para cruzar esse vale sem perder dinheiro de verdade.
+
+**Mitigações de escopo decididas** (encurtam o vale): arquivo ligado na semana 1 + arqueologia de fontes via Wayback/Common Crawl/GDELT (fraquezas 2 e 9 — §3.2 item 6); modo sombra com pré-registro durante a construção (fraqueza 4 — Sprint 5); protocolo de encerramento ordenado + revisão externa semestral (fraqueza 1 — §5.3); limite de liquidez por ADV + stops intraday (fraquezas 5 e 6 — motor de risco, §5); `LLMAdapter` agnóstico (fraqueza 3 — §9); universo inicial mínimo viável com teto de custo (fraqueza 8 — §12).
 
 ### 14.2 Riscos operacionais e mitigações
 

@@ -30,7 +30,10 @@ flowchart LR
 > **Re-sequenciado (Ponto 7 da revisão, decidido pelo gestor): dados primeiro.** A ingestão é ~60% do esforço real do projeto (entity linking por CNPJ, diários sem feed, PDFs de notas explicativas, NLP em português); os Sprints 1–4 são quase inteiramente dados, e os agentes só entram no Sprint 5 — sobre dados já limpos e medidos. O "agente" da fase inicial é um relatório simples em cima de dados confiáveis: o valor nasce da limpeza. **Regra de infraestrutura:** usar projetos públicos existentes primeiro — **Querido Diário** (Open Knowledge Brasil, diários oficiais municipais), **DataJud/Comunica CNJ** (judicial), **dados abertos CVM** (ITR/DFP estruturados) — com raspadores próprios onde forem necessários ou onde comprovadamente otimizarem resultados (decisão caso a caso, registrada).
 
 ### Sprint 1–2 — Fundação de dados e núcleo de coleta
+- **Semana 1, antes de tudo: ligar o arquivo.** Scripts mínimos de coleta+arquivo point-in-time (S3/Parquet com timestamp de captura) das fontes efêmeras do universo inicial (sites de RI, diários, notícias regionais) rodando antes de qualquer outro componente — o fosso e o futuro backtest começam a contar do primeiro dia do projeto. Pré-condição: **universo inicial mínimo viável definido** (15–20 empresas, 3–4 setores, §12 do projeto) com teto de custo mensal.
+- **Arqueologia de fontes** (§3.2 item 6 do projeto): importar snapshots datados de terceiros neutros — Wayback Machine, Common Crawl, GDELT — para estender o arquivo point-in-time para trás onde existir, com origem e qualidade na ficha de consistência.
 - Repositório, CI/CD (lint, testes, build), infraestrutura como código (Terraform), ambientes `dev` e `prod` separados desde o dia 1.
+- **`LLMAdapter` agnóstico de provedor** desde o primeiro agente auxiliar: nenhum código fala com API de LLM diretamente; a suíte de evals roda como teste de portabilidade entre modelos.
 - Modelo de dados no PostgreSQL + migrações versionadas (Alembic).
 - **Golden set de entity linking como o PRIMEIRO eval do projeto**: CNPJ ↔ razões sociais ↔ nomes de pregão ↔ apelidos de imprensa, rotulado por humano — se o linking erra, todos os sinais a jusante estão errados e nenhum eval de agente detecta. Nenhum coletor entra em produção sem passar por ele.
 - Coletores do núcleo: market data EOD, fatos relevantes CVM/EDGAR, feeds de notícias nacionais.
@@ -50,6 +53,7 @@ flowchart LR
 - Agente Fundamentalista e Agente de Sentimento com **saída estruturada validada por schema** (score, confiança, evidências com IDs de documentos reais).
 - Tabela `agent_runs` com custo, latência e prompt versionado.
 - **Mecanismo de pré-registro** (`predictions`, §4.5): todo sinal relevante grava previsão falsificável com prazo desde o primeiro sinal emitido; apuração automática no vencimento.
+- **Modo sombra desde o primeiro sinal:** os agentes rodam diariamente em produção-sombra (sem carteira, sem ordens) com pré-registro real de previsões — ao chegar no Gate 2, haverá meses extras de track record prospectivo e amostras de calibração acumuladas durante a própria construção.
 - **Entregável**: sinais diários auditáveis para o universo inicial; primeiro relatório diário com análise.
 
 ### Sprint 6–7 — Comitê, decisão e motor de risco
@@ -60,6 +64,7 @@ flowchart LR
 - **Camada de calibração + meta-modelo** (`PROJETO...md` §5.2): regressão isotônica, Brier/curvas por agente e setor, shrinkage; meta-modelo em cold start (pesos iguais + encolhimento), com verificação de que as features representam os sinais qualitativos das bases (requisito de mandato).
 - **Motor de risco como biblioteca pura e determinística** (sem LLM, sem I/O), 100% testável.
 - **Modelo de risco de fatores + stress diário** (Ponto 5): betas por ativo, limites sobre exposições líquidas por fator, stress contra cenários históricos com gatilho de só-redução.
+- **Limite de liquidez por posição** (saída em ≤ 5 pregões a ≤ 10% do ADV) e **stops intraday** via monitor contínuo — decisões novas são EOD, defesa não é (§5 do projeto, mitigações §14.1).
 - **Entregável**: pipeline completo até "propostas de ordem" — sem executar nada.
 
 ### Sprint 8 — OMS e adaptador de corretora (paper)
